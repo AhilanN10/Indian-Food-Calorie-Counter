@@ -1,0 +1,214 @@
+import SwiftUI
+
+struct ResultsView: View {
+    let dishName: String
+    let result: MacroResult
+    let onScanAgain: () -> Void
+
+    // MARK: - Computed
+
+    var confidenceLabel: String {
+        switch result.confidenceBandPct {
+        case ..<0.15: return "High confidence"
+        case ..<0.30: return "Medium confidence"
+        case ..<0.45: return "Low confidence"
+        default:      return "Rough estimate"
+        }
+    }
+
+    var confidenceColor: Color {
+        switch result.confidenceBandPct {
+        case ..<0.15: return .green
+        case ..<0.30: return .orange
+        default:      return .red
+        }
+    }
+
+    var totalMacroKcal: Double {
+        (result.proteinG * 4) + (result.carbG * 4) + (result.fatG * 9)
+    }
+
+    var proteinPct: Double { (result.proteinG * 4) / max(totalMacroKcal, 1) }
+    var carbPct:    Double { (result.carbG    * 4) / max(totalMacroKcal, 1) }
+    var fatPct:     Double { (result.fatG     * 9) / max(totalMacroKcal, 1) }
+
+    // MARK: - Body
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+
+                // Dish name + confidence badge
+                VStack(spacing: 6) {
+                    Text(dishName)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .multilineTextAlignment(.center)
+                    Label(confidenceLabel, systemImage: "chart.bar.fill")
+                        .font(.caption)
+                        .foregroundColor(confidenceColor)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(confidenceColor.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+                .padding(.top)
+
+                // Big kcal number
+                VStack(spacing: 4) {
+                    Text("\(Int(result.kcalEstimate))")
+                        .font(.system(size: 80, weight: .bold, design: .rounded))
+                        .foregroundColor(.orange)
+                        .contentTransition(.numericText())
+                    Text("calories")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    Text("\(Int(result.kcalLow)) – \(Int(result.kcalHigh)) kcal range")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(RoundedRectangle(cornerRadius: 20).fill(Color(.systemGray6)))
+                .padding(.horizontal)
+
+                // Macro cards
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                    ],
+                    spacing: 12
+                ) {
+                    MacroCard(label: "Protein", value: result.proteinG, unit: "g",
+                              color: .blue,   pct: proteinPct)
+                    MacroCard(label: "Carbs",   value: result.carbG,    unit: "g",
+                              color: .green,  pct: carbPct)
+                    MacroCard(label: "Fat",     value: result.fatG,     unit: "g",
+                              color: .orange, pct: fatPct)
+                    MacroCard(label: "Fibre",   value: result.fibreG,   unit: "g",
+                              color: .purple, pct: nil)
+                }
+                .padding(.horizontal)
+
+                // Macro bar
+                MacroBar(proteinPct: proteinPct, carbPct: carbPct, fatPct: fatPct)
+                    .padding(.horizontal)
+
+                // Adjustments applied (collapsed detail)
+                if !result.adjustmentsApplied.isEmpty {
+                    DisclosureGroup("Adjustments applied") {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(result.adjustmentsApplied, id: \.self) { adj in
+                                Text("• \(adj)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
+                    }
+                    .font(.caption)
+                    .padding(.horizontal)
+                }
+
+                // Scan again
+                Button(action: onScanAgain) {
+                    Label("Scan Another Dish", systemImage: "camera.fill")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.orange)
+                        .cornerRadius(14)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 32)
+            }
+        }
+        .navigationTitle("Results")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - MacroCard
+
+struct MacroCard: View {
+    let label: String
+    let value: Double
+    let unit: String
+    let color: Color
+    let pct: Double?
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text("\(Int(value))\(unit)")
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(color)
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            if let pct = pct {
+                Text("\(Int(pct * 100))%")
+                    .font(.caption2)
+                    .foregroundColor(color.opacity(0.7))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
+    }
+}
+
+// MARK: - MacroBar
+
+struct MacroBar: View {
+    let proteinPct: Double
+    let carbPct:    Double
+    let fatPct:     Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Macro breakdown")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            GeometryReader { geo in
+                HStack(spacing: 2) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.blue)
+                        .frame(width: geo.size.width * proteinPct)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.green)
+                        .frame(width: geo.size.width * carbPct)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.orange)
+                        .frame(width: geo.size.width * fatPct)
+                }
+            }
+            .frame(height: 10)
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+
+            HStack(spacing: 12) {
+                LegendDot(color: .blue,   label: "Protein")
+                LegendDot(color: .green,  label: "Carbs")
+                LegendDot(color: .orange, label: "Fat")
+            }
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
+    }
+}
+
+private struct LegendDot: View {
+    let color: Color
+    let label: String
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 8, height: 8)
+            Text(label).font(.caption2).foregroundColor(.secondary)
+        }
+    }
+}

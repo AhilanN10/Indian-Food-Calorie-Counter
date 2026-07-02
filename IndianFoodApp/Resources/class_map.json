@@ -1,0 +1,1423 @@
+{
+  "num_classes": 92,
+  "classes": {
+    "adhirasam": {
+      "class_idx": 0,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "aloo_gobi": {
+      "class_idx": 1,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "aloo_matar": {
+      "class_idx": 2,
+      "indb_food_code": "ASC190",
+      "indb_food_name": "Pea potato curry (Aloo matar)",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "aloo_methi": {
+      "class_idx": 3,
+      "indb_food_code": "ASC175",
+      "indb_food_name": "Potato fenugreek (Aloo methi)",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "aloo_shimla_mirch": {
+      "class_idx": 4,
+      "indb_food_code": "ASC172",
+      "indb_food_name": "Potato capsicum (Shimla mirch aloo)",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "mapping_strategy": "strategy1_split_intersect"
+    },
+    "aloo_tikki": {
+      "class_idx": 5,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "mapping_strategy": "manual_fix_aloo_tikki",
+      "fallback": "usda",
+      "usda_query": "aloo tikki potato patty"
+    },
+    "anarsa": {
+      "class_idx": 6,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "ariselu": {
+      "class_idx": 7,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Andhra Pradesh",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "bandar_laddu": {
+      "class_idx": 8,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Andhra Pradesh",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "basundi": {
+      "class_idx": 9,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Gujarat",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "bhatura": {
+      "class_idx": 10,
+      "indb_food_code": "ASC143",
+      "indb_food_name": "Bhatura",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "bhindi_masala": {
+      "class_idx": 11,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "biryani": {
+      "class_idx": 12,
+      "indb_food_code": "ASC122",
+      "indb_food_name": "Mutton biryani/biriyani",
+      "needs_manual_mapping": false,
+      "state": "Telangana",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "boondi": {
+      "class_idx": 13,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Rajasthan",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "butter_chicken": {
+      "class_idx": 14,
+      "indb_food_code": "ASC242",
+      "indb_food_name": "Butter chicken",
+      "needs_manual_mapping": false,
+      "state": "NCT of Delhi",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "chai": {
+      "class_idx": 15,
+      "indb_food_code": "ASC001",
+      "indb_food_name": "Hot tea (Garam Chai)",
+      "needs_manual_mapping": false,
+      "state": null,
+      "region": null,
+      "image_count": {
+        "train": 305,
+        "val": 38,
+        "test": 38
+      }
+    },
+    "chak_hao_kheer": {
+      "class_idx": 16,
+      "indb_food_code": "OSR011",
+      "indb_food_name": "Black rice kheer (Chak-hao kheer)",
+      "needs_manual_mapping": false,
+      "state": "Manipur",
+      "region": "North East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "cham_cham": {
+      "class_idx": 17,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "chana_masala": {
+      "class_idx": 18,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "chapati": {
+      "class_idx": 19,
+      "indb_food_code": "ASC096",
+      "indb_food_name": "Chapati/Roti",
+      "needs_manual_mapping": false,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 371,
+        "val": 46,
+        "test": 46
+      }
+    },
+    "chhena_kheeri": {
+      "class_idx": 20,
+      "indb_food_code": "OSR022",
+      "indb_food_name": "Chhena poda",
+      "needs_manual_mapping": false,
+      "state": "Odisha",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "mapping_strategy": "strategy2_longest_token"
+    },
+    "chicken_razala": {
+      "class_idx": 21,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "chicken_tikka": {
+      "class_idx": 22,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "chicken_tikka_masala": {
+      "class_idx": 23,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "chikki": {
+      "class_idx": 24,
+      "indb_food_code": "ASC382",
+      "indb_food_name": "Peanut brittle (Moongfali ki chikki)",
+      "needs_manual_mapping": false,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "chole_bhatura": {
+      "class_idx": 25,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": false,
+      "state": null,
+      "region": null,
+      "image_count": {
+        "train": 329,
+        "val": 41,
+        "test": 41
+      },
+      "mapping_strategy": "manual_fix_composite",
+      "composite": true,
+      "components": [
+        {
+          "search": "chhole",
+          "food_code": "ASC162",
+          "food_name": "Chickpeas curry (Safed channa curry)",
+          "weight_pct": 0.45
+        },
+        {
+          "search": "bhatura",
+          "food_code": "ASC143",
+          "food_name": "Bhatura",
+          "weight_pct": 0.55
+        }
+      ],
+      "fallback": "composite"
+    },
+    "daal_baati_churma": {
+      "class_idx": 26,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Rajasthan",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "daal_puri": {
+      "class_idx": 27,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "dal_makhani": {
+      "class_idx": 28,
+      "indb_food_code": "OSR139",
+      "indb_food_name": "Dal makhani",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 297,
+        "val": 37,
+        "test": 37
+      }
+    },
+    "dal_tadka": {
+      "class_idx": 29,
+      "indb_food_code": "BFP178",
+      "indb_food_name": "Green gram whole with baghar (Sabut moong dal with tadka)",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "dharwad_pedha": {
+      "class_idx": 30,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Karnataka",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "dhokla": {
+      "class_idx": 31,
+      "indb_food_code": "ASC474",
+      "indb_food_name": "Dhokla",
+      "needs_manual_mapping": false,
+      "state": "Gujarat",
+      "region": "West",
+      "image_count": {
+        "train": 231,
+        "val": 29,
+        "test": 29
+      }
+    },
+    "doodhpak": {
+      "class_idx": 32,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Gujarat",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "double_ka_meetha": {
+      "class_idx": 33,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Telangana",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "dum_aloo": {
+      "class_idx": 34,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Jammu & Kashmir",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "fried_rice": {
+      "class_idx": 35,
+      "indb_food_code": "ASC129",
+      "indb_food_name": "Chinese fried rice",
+      "needs_manual_mapping": false,
+      "state": null,
+      "region": null,
+      "image_count": {
+        "train": 283,
+        "val": 36,
+        "test": 36
+      }
+    },
+    "gajar_ka_halwa": {
+      "class_idx": 36,
+      "indb_food_code": "ASC295",
+      "indb_food_name": "Carrot halwa (Gajar ka halwa)",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "gavvalu": {
+      "class_idx": 37,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Andhra Pradesh",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "ghevar": {
+      "class_idx": 38,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Rajasthan",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "gulab_jamun": {
+      "class_idx": 39,
+      "indb_food_code": "ASC348",
+      "indb_food_name": "Gulab Jamun with khoya",
+      "needs_manual_mapping": false,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "idli": {
+      "class_idx": 40,
+      "indb_food_code": "ASC144",
+      "indb_food_name": "Idli",
+      "needs_manual_mapping": false,
+      "state": "-1",
+      "region": "South",
+      "image_count": {
+        "train": 247,
+        "val": 31,
+        "test": 31
+      }
+    },
+    "imarti": {
+      "class_idx": 41,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "jalebi": {
+      "class_idx": 42,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Uttar Pradesh",
+      "region": "North",
+      "image_count": {
+        "train": 277,
+        "val": 35,
+        "test": 35
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "kachori": {
+      "class_idx": 43,
+      "indb_food_code": "ASC365",
+      "indb_food_name": "Khasta kachori",
+      "needs_manual_mapping": false,
+      "state": "Uttar Pradesh",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "kadhi_pakoda": {
+      "class_idx": 44,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Haryana",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "kajjikaya": {
+      "class_idx": 45,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Andhra Pradesh",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "kakinada_khaja": {
+      "class_idx": 46,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Andhra Pradesh",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "kalakand": {
+      "class_idx": 47,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "karela_bharta": {
+      "class_idx": 48,
+      "indb_food_code": "BFP604",
+      "indb_food_name": "Stuffed bittergourd (dry) (Bharwa karela)",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "mapping_strategy": "strategy2_longest_token"
+    },
+    "kathi_roll": {
+      "class_idx": 49,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": null,
+      "region": null,
+      "image_count": {
+        "train": 235,
+        "val": 29,
+        "test": 29
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "kofta": {
+      "class_idx": 50,
+      "indb_food_code": "ASC197",
+      "indb_food_name": "Gravy for kofta",
+      "needs_manual_mapping": false,
+      "state": "Uttar Pradesh",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "kulfi": {
+      "class_idx": 51,
+      "indb_food_code": "ASC321",
+      "indb_food_name": "Kulfi",
+      "needs_manual_mapping": false,
+      "state": "-1",
+      "region": "-1",
+      "image_count": {
+        "train": 188,
+        "val": 24,
+        "test": 24
+      }
+    },
+    "kuzhi_paniyaram": {
+      "class_idx": 52,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Kerala",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "lassi": {
+      "class_idx": 53,
+      "indb_food_code": "ASC021",
+      "indb_food_name": "Sweet Lassi (Meethi lassi)",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "ledikeni": {
+      "class_idx": 54,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "litti_chokha": {
+      "class_idx": 55,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Bihar",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "lyangcha": {
+      "class_idx": 56,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Assam",
+      "region": "North East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "maach_jhol": {
+      "class_idx": 57,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Assam",
+      "region": "North East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "makki_di_roti_sarson_da_saag": {
+      "class_idx": 58,
+      "indb_food_code": "ASC150",
+      "indb_food_name": "Makki ki roti",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "mapping_strategy": "strategy1_split_intersect"
+    },
+    "malapua": {
+      "class_idx": 59,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Bihar",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "masala_dosa": {
+      "class_idx": 60,
+      "indb_food_code": "ASC146",
+      "indb_food_name": "Masala dosa",
+      "needs_manual_mapping": false,
+      "state": "-1",
+      "region": "South",
+      "image_count": {
+        "train": 249,
+        "val": 31,
+        "test": 31
+      }
+    },
+    "misi_roti": {
+      "class_idx": 61,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "misti_doi": {
+      "class_idx": 62,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "modak": {
+      "class_idx": 63,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "mysore_pak": {
+      "class_idx": 64,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Karnataka",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "naan": {
+      "class_idx": 65,
+      "indb_food_code": "ASC142",
+      "indb_food_name": "Naan",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 303,
+        "val": 38,
+        "test": 38
+      }
+    },
+    "navrattan_korma": {
+      "class_idx": 66,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Uttar Pradesh",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "pakora": {
+      "class_idx": 67,
+      "indb_food_code": "BFP415",
+      "indb_food_name": "Masala onion pakora/pakoda (Pyaaz ke pakode)",
+      "needs_manual_mapping": false,
+      "state": null,
+      "region": null,
+      "image_count": {
+        "train": 222,
+        "val": 28,
+        "test": 28
+      }
+    },
+    "palak_paneer": {
+      "class_idx": 68,
+      "indb_food_code": "ASC215",
+      "indb_food_name": "Spinach paneer (Palak paneer)",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "paneer": {
+      "class_idx": 69,
+      "indb_food_code": "ASC042",
+      "indb_food_name": "Paneer pea sandwich (toasted) (Paneer matar ka sandwich)",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 370,
+        "val": 46,
+        "test": 46
+      }
+    },
+    "paneer_butter_masala": {
+      "class_idx": 70,
+      "indb_food_code": "ASC222",
+      "indb_food_name": "Paneer in butter sauce",
+      "needs_manual_mapping": false,
+      "state": "Punjab",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "mapping_strategy": "strategy1_split_intersect"
+    },
+    "pani_puri": {
+      "class_idx": 71,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "-1",
+      "region": "-1",
+      "image_count": {
+        "train": 104,
+        "val": 13,
+        "test": 13
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "pav_bhaji": {
+      "class_idx": 72,
+      "indb_food_code": "OSR097",
+      "indb_food_name": "Pav bhaji masala",
+      "needs_manual_mapping": false,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 283,
+        "val": 35,
+        "test": 35
+      }
+    },
+    "phirni": {
+      "class_idx": 73,
+      "indb_food_code": "ASC292",
+      "indb_food_name": "Phirni",
+      "needs_manual_mapping": false,
+      "state": "Odisha",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "pithe": {
+      "class_idx": 74,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Assam",
+      "region": "North East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "poha": {
+      "class_idx": 75,
+      "indb_food_code": "ASC469",
+      "indb_food_name": "Sprouted moong poha ",
+      "needs_manual_mapping": false,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "poornalu": {
+      "class_idx": 76,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Andhra Pradesh",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "pootharekulu": {
+      "class_idx": 77,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Andhra Pradesh",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "qubani_ka_meetha": {
+      "class_idx": 78,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Telangana",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "rabri": {
+      "class_idx": 79,
+      "indb_food_code": "OSR025",
+      "indb_food_name": "Thickened sweetened milk (Rabri)",
+      "needs_manual_mapping": false,
+      "state": "Uttar Pradesh",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "ras_malai": {
+      "class_idx": 80,
+      "indb_food_code": "BFP393",
+      "indb_food_name": "Rasmalai",
+      "needs_manual_mapping": false,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "rasgulla": {
+      "class_idx": 81,
+      "indb_food_code": "BFP392",
+      "indb_food_name": "Rasgulla",
+      "needs_manual_mapping": false,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "samosa": {
+      "class_idx": 82,
+      "indb_food_code": "ASC361",
+      "indb_food_name": "Potato samosa (Aloo ka samosa)",
+      "needs_manual_mapping": false,
+      "state": "-1",
+      "region": "-1",
+      "image_count": {
+        "train": 210,
+        "val": 26,
+        "test": 26
+      }
+    },
+    "sandesh": {
+      "class_idx": 83,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "West Bengal",
+      "region": "East",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "shankarpali": {
+      "class_idx": 84,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "sheer_korma": {
+      "class_idx": 85,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Telangana",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "sheera": {
+      "class_idx": 86,
+      "indb_food_code": "ASC293",
+      "indb_food_name": "Semolina halwa (Suji ka halwa)",
+      "needs_manual_mapping": false,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "shrikhand": {
+      "class_idx": 87,
+      "indb_food_code": "OSR024",
+      "indb_food_name": "Sweetened yogurt (Shrikhand)",
+      "needs_manual_mapping": false,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      }
+    },
+    "sohan_halwa": {
+      "class_idx": 88,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Uttar Pradesh",
+      "region": "North",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "sohan_papdi": {
+      "class_idx": 89,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": false,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "mapping_strategy": "manual_fix_sohan_papdi",
+      "fallback": "usda",
+      "usda_query": "sohan papdi Indian sweet flaky dessert"
+    },
+    "sutar_feni": {
+      "class_idx": 90,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Maharashtra",
+      "region": "West",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    },
+    "unni_appam": {
+      "class_idx": 91,
+      "indb_food_code": null,
+      "indb_food_name": null,
+      "needs_manual_mapping": true,
+      "state": "Tamil Nadu",
+      "region": "South",
+      "image_count": {
+        "train": 40,
+        "val": 5,
+        "test": 5
+      },
+      "fallback": "usda",
+      "mapping_strategy": null
+    }
+  },
+  "class_index_order": [
+    "adhirasam",
+    "aloo_gobi",
+    "aloo_matar",
+    "aloo_methi",
+    "aloo_shimla_mirch",
+    "aloo_tikki",
+    "anarsa",
+    "ariselu",
+    "bandar_laddu",
+    "basundi",
+    "bhatura",
+    "bhindi_masala",
+    "biryani",
+    "boondi",
+    "butter_chicken",
+    "chai",
+    "chak_hao_kheer",
+    "cham_cham",
+    "chana_masala",
+    "chapati",
+    "chhena_kheeri",
+    "chicken_razala",
+    "chicken_tikka",
+    "chicken_tikka_masala",
+    "chikki",
+    "chole_bhatura",
+    "daal_baati_churma",
+    "daal_puri",
+    "dal_makhani",
+    "dal_tadka",
+    "dharwad_pedha",
+    "dhokla",
+    "doodhpak",
+    "double_ka_meetha",
+    "dum_aloo",
+    "fried_rice",
+    "gajar_ka_halwa",
+    "gavvalu",
+    "ghevar",
+    "gulab_jamun",
+    "idli",
+    "imarti",
+    "jalebi",
+    "kachori",
+    "kadhi_pakoda",
+    "kajjikaya",
+    "kakinada_khaja",
+    "kalakand",
+    "karela_bharta",
+    "kathi_roll",
+    "kofta",
+    "kulfi",
+    "kuzhi_paniyaram",
+    "lassi",
+    "ledikeni",
+    "litti_chokha",
+    "lyangcha",
+    "maach_jhol",
+    "makki_di_roti_sarson_da_saag",
+    "malapua",
+    "masala_dosa",
+    "misi_roti",
+    "misti_doi",
+    "modak",
+    "mysore_pak",
+    "naan",
+    "navrattan_korma",
+    "pakora",
+    "palak_paneer",
+    "paneer",
+    "paneer_butter_masala",
+    "pani_puri",
+    "pav_bhaji",
+    "phirni",
+    "pithe",
+    "poha",
+    "poornalu",
+    "pootharekulu",
+    "qubani_ka_meetha",
+    "rabri",
+    "ras_malai",
+    "rasgulla",
+    "samosa",
+    "sandesh",
+    "shankarpali",
+    "sheer_korma",
+    "sheera",
+    "shrikhand",
+    "sohan_halwa",
+    "sohan_papdi",
+    "sutar_feni",
+    "unni_appam"
+  ]
+}

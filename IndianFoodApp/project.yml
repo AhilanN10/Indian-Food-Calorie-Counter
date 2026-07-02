@@ -1,0 +1,25 @@
+name: IndianFoodApp
+options:
+  bundleIdPrefix: com.ahilan
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+targets:
+  IndianFoodApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Resources
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.ahilan.IndianFoodApp
+      SWIFT_VERSION: "5.9"
+      INFOPLIST_FILE: Sources/App/Info.plist
+    info:
+      path: Sources/App/Info.plist
+      properties:
+        NSCameraUsageDescription: "Used to scan food for calorie estimation"
+        NSPhotoLibraryUsageDescription: "Used to select food photos for calorie estimation"
+        UILaunchStoryboardName: LaunchScreen
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
