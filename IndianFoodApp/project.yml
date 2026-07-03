@@ -2,7 +2,7 @@ name: IndianFoodApp
 options:
   bundleIdPrefix: com.ahilan
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "17.0"
   xcodeVersion: "15.0"
 targets:
   IndianFoodApp:

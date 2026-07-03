@@ -1,29 +1,38 @@
 import SwiftUI
+import SwiftData
 
-// MARK: - App State
+// MARK: - App State (scanning flow only)
 
 enum AppState {
-    case home
+    case idle
     case classifying
-    case confirming(ClassificationResult)          // low-confidence → show top picks
-    case searching(ClassificationResult?)          // manual search / unknown dish
+    case confirming(ClassificationResult)
+    case searching(ClassificationResult?)
     case questioning(DishMatch, ClassificationResult)
     case calculating
-    case results(String, MacroResult)
+    case results(String, String, MacroResult)  // dishName, foodCode, result
     case error(String)
+}
+
+extension AppState {
+    var isIdle: Bool {
+        if case .idle = self { return true }
+        return false
+    }
 }
 
 // MARK: - ViewModel
 
 @MainActor
 class AppViewModel: ObservableObject {
-    @Published var state: AppState = .home
+    @Published var state: AppState = .idle
     @Published var capturedImage: UIImage?
     @Published var showCamera       = false
     @Published var showPhotoLibrary = false
     @Published var questionResponses: [String: String] = [:]
     @Published var questions: [QAQuestion] = []
     @Published var backendOnline = false
+    @Published var selectedTab: Int = 0
 
     let visionService  = VisionService()
     let apiService     = APIService()
@@ -53,7 +62,6 @@ class AppViewModel: ObservableObject {
     }
 
     func handleClassificationResult(_ result: ClassificationResult) async {
-        // Low confidence → ask user to confirm
         if visionService.needsConfirmation(for: result) {
             state = .confirming(result)
             return
@@ -64,6 +72,28 @@ class AppViewModel: ObservableObject {
     func confirmClass(_ className: String, result: ClassificationResult) async {
         await resolveAndProceed(className: className, result: result)
     }
+
+    // MARK: - Search
+
+    func openSearch(from classResult: ClassificationResult? = nil) {
+        state = .searching(classResult)
+    }
+
+    func handleSearchSelection(_ searchResult: SearchResult,
+                               classResult: ClassificationResult?) async {
+        guard let dish = try? await apiService.getDish(foodCode: searchResult.foodCode) else {
+            state = .error("Could not load '\(searchResult.foodName)'")
+            return
+        }
+        let syntheticResult = classResult ?? ClassificationResult(
+            className:     searchResult.foodCode,
+            confidence:    1.0,
+            topCandidates: [(searchResult.foodCode, 1.0)]
+        )
+        proceed(with: dish, result: syntheticResult)
+    }
+
+    // MARK: - Resolution
 
     private func resolveAndProceed(className: String,
                                    result: ClassificationResult) async {
@@ -85,7 +115,7 @@ class AppViewModel: ObservableObject {
     }
 
     private func proceed(with dish: DishMatch, result: ClassificationResult) {
-        questions        = questionEngine.generateQuestions(for: dish, classificationResult: result)
+        questions         = questionEngine.generateQuestions(for: dish, classificationResult: result)
         questionResponses = [:]
         state = .questioning(dish, result)
     }
@@ -102,52 +132,86 @@ class AppViewModel: ObservableObject {
                 state = .error("Could not calculate macros.\nIs the backend running?")
                 return
             }
-            state = .results(dish.foodName, macroResult)
+            state = .results(dish.foodName, dish.foodCode, macroResult)
         }
     }
 
-    // MARK: - Search
+    // MARK: - Finish / Reset
 
-    func openSearch(from classResult: ClassificationResult? = nil) {
-        state = .searching(classResult)
+    func finishLogging() {
+        state       = .idle
+        selectedTab = 0   // jump back to dashboard
     }
-
-    func handleSearchSelection(_ searchResult: SearchResult,
-                               classResult: ClassificationResult?) async {
-        guard let dish = try? await apiService.getDish(foodCode: searchResult.foodCode) else {
-            state = .error("Could not load '\(searchResult.foodName)'")
-            return
-        }
-        let syntheticResult = classResult ?? ClassificationResult(
-            className:      searchResult.foodCode,
-            confidence:     1.0,
-            topCandidates:  [(searchResult.foodCode, 1.0)]
-        )
-        proceed(with: dish, result: syntheticResult)
-    }
-
-    // MARK: - Reset
 
     func reset() {
-        state             = .home
+        state             = .idle
         capturedImage     = nil
         questionResponses = [:]
         questions         = []
-        Task { backendOnline = await apiService.healthCheck() }
     }
 }
 
-// MARK: - ContentView
+// MARK: - Root Tab View
 
 struct ContentView: View {
     @StateObject var vm = AppViewModel()
 
     var body: some View {
+        ZStack {
+            TabView(selection: $vm.selectedTab) {
+                DashboardView()
+                    .tabItem { Label("Dashboard", systemImage: "house.fill") }
+                    .tag(0)
+
+                LogView(vm: vm)
+                    .tabItem { Label("Log", systemImage: "plus.circle.fill") }
+                    .tag(1)
+
+                MealHistoryView()
+                    .tabItem { Label("History", systemImage: "calendar") }
+                    .tag(2)
+            }
+
+            // Scanning flow overlay — covers tabs during an active scan
+            if !vm.state.isIdle {
+                ScanFlowView(vm: vm)
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: vm.state.isIdle)
+        // Camera sheet
+        .sheet(isPresented: $vm.showCamera, onDismiss: {
+            if let img = vm.capturedImage { vm.handleCapturedImage(img) }
+        }) {
+            CameraView(image: $vm.capturedImage,
+                       isPresented: $vm.showCamera,
+                       sourceType: .camera)
+                .ignoresSafeArea()
+        }
+        // Photo library sheet
+        .sheet(isPresented: $vm.showPhotoLibrary, onDismiss: {
+            if let img = vm.capturedImage { vm.handleCapturedImage(img) }
+        }) {
+            CameraView(image: $vm.capturedImage,
+                       isPresented: $vm.showPhotoLibrary,
+                       sourceType: .photoLibrary)
+                .ignoresSafeArea()
+        }
+    }
+}
+
+// MARK: - Scan Flow Overlay
+
+struct ScanFlowView: View {
+    @ObservedObject var vm: AppViewModel
+
+    var body: some View {
         NavigationStack {
             Group {
                 switch vm.state {
-                case .home:
-                    HomeView(vm: vm)
+                case .idle:
+                    EmptyView()
 
                 case .classifying:
                     ClassifyingView(image: vm.capturedImage)
@@ -167,10 +231,10 @@ struct ContentView: View {
                         onCancel: { vm.reset() }
                     )
 
-                case .questioning(let dish, let classResult):
+                case .questioning(let dish, _):
                     QuestionView(
                         questions: vm.questions,
-                        dishName: dish.foodName,
+                        dishName:  dish.foodName,
                         responses: $vm.questionResponses
                     ) {
                         vm.submitAnswers(dish: dish)
@@ -179,119 +243,28 @@ struct ContentView: View {
                 case .calculating:
                     CalculatingView()
 
-                case .results(let name, let result):
-                    ResultsView(dishName: name, result: result) { vm.reset() }
+                case .results(let name, let foodCode, let result):
+                    ResultsView(
+                        dishName:   name,
+                        foodCode:   foodCode,
+                        result:     result,
+                        onDone:     { vm.finishLogging() }
+                    )
 
                 case .error(let msg):
                     ErrorView(message: msg) { vm.reset() }
                 }
             }
-        }
-        // Camera sheet
-        .sheet(isPresented: $vm.showCamera, onDismiss: {
-            if let img = vm.capturedImage { vm.handleCapturedImage(img) }
-        }) {
-            CameraView(image: $vm.capturedImage, isPresented: $vm.showCamera, sourceType: .camera)
-                .ignoresSafeArea()
-        }
-        .sheet(isPresented: $vm.showPhotoLibrary, onDismiss: {
-            if let img = vm.capturedImage { vm.handleCapturedImage(img) }
-        }) {
-            CameraView(image: $vm.capturedImage, isPresented: $vm.showPhotoLibrary, sourceType: .photoLibrary)
-                .ignoresSafeArea()
-        }
-    }
-}
-
-// MARK: - HomeView
-
-struct HomeView: View {
-    @ObservedObject var vm: AppViewModel
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
-
-            // Logo + headline
-            VStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.15))
-                        .frame(width: 120, height: 120)
-                    Image(systemName: "fork.knife.circle.fill")
-                        .font(.system(size: 64))
-                        .foregroundColor(.orange)
-                }
-
-                VStack(spacing: 6) {
-                    Text("CalorieScan")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    Text("Scan any Indian dish to get\ncalories and macros instantly")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if !vm.state.isIdle {
+                        Button("Cancel") { vm.reset() }
+                            .foregroundColor(.orange)
+                    }
                 }
             }
-
-            Spacer()
-
-            // Backend status indicator
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(vm.backendOnline ? Color.green : Color.red)
-                    .frame(width: 8, height: 8)
-                Text(vm.backendOnline ? "Backend connected" : "Backend offline")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.bottom, 8)
-
-            // CTA buttons
-            VStack(spacing: 12) {
-                Button {
-                    vm.capturedImage = nil
-                    vm.showCamera    = true
-                } label: {
-                    Label("Take a Photo", systemImage: "camera.fill")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.orange)
-                        .cornerRadius(14)
-                }
-
-                Button {
-                    vm.capturedImage    = nil
-                    vm.showPhotoLibrary = true
-                } label: {
-                    Label("Choose from Library", systemImage: "photo.fill")
-                        .font(.headline)
-                        .foregroundColor(.orange)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.orange.opacity(0.15))
-                        .cornerRadius(14)
-                }
-
-                Button {
-                    vm.openSearch()
-                } label: {
-                    Label("Search Dishes", systemImage: "magnifyingglass")
-                        .font(.headline)
-                        .foregroundColor(.orange)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.orange.opacity(0.15))
-                        .cornerRadius(14)
-                }
-            }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 48)
         }
-        .navigationTitle("CalorieScan")
-        .navigationBarTitleDisplayMode(.large)
+        .background(Color(.systemBackground))
     }
 }
 
@@ -312,8 +285,7 @@ struct ClassifyingView: View {
                     .shadow(radius: 8)
             }
             VStack(spacing: 12) {
-                ProgressView()
-                    .scaleEffect(1.4)
+                ProgressView().scaleEffect(1.4)
                 Text("Identifying your dish…")
                     .font(.headline)
                     .foregroundColor(.secondary)
@@ -331,8 +303,7 @@ struct CalculatingView: View {
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
-            ProgressView()
-                .scaleEffect(1.4)
+            ProgressView().scaleEffect(1.4)
             Text("Calculating macros…")
                 .font(.headline)
                 .foregroundColor(.secondary)
@@ -346,9 +317,9 @@ struct CalculatingView: View {
 // MARK: - ConfirmDishView
 
 struct ConfirmDishView: View {
-    let result: ClassificationResult
+    let result:    ClassificationResult
     let onConfirm: (String) -> Void
-    let onCancel: () -> Void
+    let onCancel:  () -> Void
 
     var body: some View {
         VStack(spacing: 24) {
@@ -363,9 +334,7 @@ struct ConfirmDishView: View {
 
             VStack(spacing: 12) {
                 ForEach(result.topCandidates, id: \.0) { name, score in
-                    Button {
-                        onConfirm(name)
-                    } label: {
+                    Button { onConfirm(name) } label: {
                         HStack {
                             Text(name.replacingOccurrences(of: "_", with: " ").capitalized)
                                 .font(.body)
@@ -384,10 +353,8 @@ struct ConfirmDishView: View {
             }
             .padding(.horizontal)
 
-            Button {
-                onConfirm("unknown")
-            } label: {
-                Text("None of these — let me type it")
+            Button { onConfirm("unknown") } label: {
+                Text("None of these — let me search")
                     .font(.callout)
                     .foregroundColor(.orange)
             }

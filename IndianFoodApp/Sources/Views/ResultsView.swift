@@ -1,9 +1,17 @@
 import SwiftUI
+import SwiftData
 
 struct ResultsView: View {
     let dishName: String
+    let foodCode: String
     let result: MacroResult
-    let onScanAgain: () -> Void
+    let onDone: () -> Void
+
+    // MARK: - SwiftData + state
+
+    @Environment(\.modelContext) private var modelContext
+    @State private var selectedMealType: MealType = .lunch
+    @State private var isLogged = false
 
     // MARK: - Computed
 
@@ -114,9 +122,72 @@ struct ResultsView: View {
                     .padding(.horizontal)
                 }
 
-                // Scan again
-                Button(action: onScanAgain) {
-                    Label("Scan Another Dish", systemImage: "camera.fill")
+                // ── Meal logging ───────────────────────────────────────────
+                VStack(spacing: 12) {
+                    Text("Log this meal")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+
+                    // Meal type selector pills
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(MealType.allCases, id: \.self) { type in
+                                Button {
+                                    selectedMealType = type
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: type.icon)
+                                        Text(type.rawValue)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(selectedMealType == type
+                                                ? Color.orange
+                                                : Color(.systemGray6))
+                                    .foregroundColor(selectedMealType == type ? .white : .primary)
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                                .animation(.easeInOut(duration: 0.15), value: selectedMealType)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+
+                    // Log button
+                    Button {
+                        logMeal()
+                    } label: {
+                        HStack {
+                            if isLogged {
+                                Image(systemName: "checkmark.circle.fill")
+                                Text("Logged!")
+                            } else {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Add to \(selectedMealType.rawValue)")
+                            }
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isLogged ? Color.green : Color.orange)
+                        .cornerRadius(14)
+                        .padding(.horizontal)
+                    }
+                    .disabled(isLogged)
+                    .animation(.easeInOut(duration: 0.2), value: isLogged)
+                }
+                .padding(.vertical, 4)
+                .background(RoundedRectangle(cornerRadius: 16).fill(Color(.systemGray6).opacity(0.5)))
+                .padding(.horizontal)
+
+                // Done button
+                Button(action: onDone) {
+                    Label("Done", systemImage: "checkmark.circle.fill")
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -130,6 +201,19 @@ struct ResultsView: View {
         }
         .navigationTitle("Results")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Log meal
+
+    private func logMeal() {
+        let log = MealLog(
+            dishName: dishName,
+            foodCode: foodCode,
+            result:   result,
+            mealType: selectedMealType.rawValue
+        )
+        modelContext.insert(log)
+        withAnimation { isLogged = true }
     }
 }
 
