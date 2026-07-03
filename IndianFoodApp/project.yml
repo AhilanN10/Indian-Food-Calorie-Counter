@@ -15,11 +15,15 @@ targets:
       PRODUCT_BUNDLE_IDENTIFIER: com.ahilan.IndianFoodApp
       SWIFT_VERSION: "5.9"
       INFOPLIST_FILE: Sources/App/Info.plist
+    capabilities:
+      com.apple.HealthKit: {}
     info:
       path: Sources/App/Info.plist
       properties:
         NSCameraUsageDescription: "Used to scan food for calorie estimation"
         NSPhotoLibraryUsageDescription: "Used to select food photos for calorie estimation"
+        NSHealthUpdateUsageDescription: "CalorieScan logs your meals including calories and macros to Apple Health."
+        NSHealthShareUsageDescription: "CalorieScan reads your health data to provide accurate tracking."
         UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

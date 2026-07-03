@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import HealthKit
 
 struct ResultsView: View {
     let dishName: String
@@ -12,6 +13,7 @@ struct ResultsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var selectedMealType: MealType = .lunch
     @State private var isLogged = false
+    @State private var healthKitLogged = false
 
     // MARK: - Computed
 
@@ -180,6 +182,24 @@ struct ResultsView: View {
                     }
                     .disabled(isLogged)
                     .animation(.easeInOut(duration: 0.2), value: isLogged)
+
+                    // HealthKit status indicator
+                    if isLogged {
+                        HStack(spacing: 6) {
+                            Image(systemName: healthKitLogged
+                                  ? "heart.fill"
+                                  : "heart.slash")
+                                .foregroundColor(healthKitLogged ? .red : .secondary)
+                                .font(.caption)
+                            Text(healthKitLogged
+                                 ? "Also logged to Apple Health"
+                                 : "Apple Health not connected")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.top, 4)
+                        .transition(.opacity)
+                    }
                 }
                 .padding(.vertical, 4)
                 .background(RoundedRectangle(cornerRadius: 16).fill(Color(.systemGray6).opacity(0.5)))
@@ -214,6 +234,27 @@ struct ResultsView: View {
         )
         modelContext.insert(log)
         withAnimation { isLogged = true }
+
+        // Also write to Apple Health
+        Task {
+            let hk = HealthKitService.shared
+            if !hk.isAuthorized {
+                await hk.requestAuthorization()
+            }
+            if hk.isAuthorized {
+                let success = await hk.logMeal(
+                    dishName: dishName,
+                    kcal:     result.kcalEstimate,
+                    protein:  result.proteinG,
+                    carbs:    result.carbG,
+                    fat:      result.fatG,
+                    fibre:    result.fibreG
+                )
+                await MainActor.run {
+                    withAnimation { healthKitLogged = success }
+                }
+            }
+        }
     }
 }
 

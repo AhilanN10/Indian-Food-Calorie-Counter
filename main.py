@@ -147,7 +147,21 @@ def dish_search(
             if row:
                 results.append(row)
 
-    return {"query": q, "results": results, "total": len(results)}
+    # Determine confidence level
+    top_score     = results[0]["match_score"] if results else 0
+    low_confidence = top_score < 80 or len(results) == 0
+    suggestion    = (
+        "No exact match found. Showing closest results. "
+        "You can still select one or try a different search term."
+        if low_confidence else None
+    )
+
+    response = {"query": q, "results": results, "total": len(results)}
+    if low_confidence:
+        response["low_confidence"] = True
+        response["suggestion"]     = suggestion
+    return response
+
 
 
 # ---------------------------------------------------------------------------
