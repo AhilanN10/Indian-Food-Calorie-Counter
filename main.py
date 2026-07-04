@@ -58,6 +58,7 @@ class QAAnswers(BaseModel):
     cooking_method:    str | None = None
     flat_additions:    list[str]  = []
     questions_skipped: int        = 0
+    manual_weight_g:   float | None = None   # exact grams – overrides portion buckets
 
 
 class CalculateRequest(BaseModel):
@@ -256,6 +257,13 @@ def dish_calculate(body: CalculateRequest):
     """
     Calculate adjusted macros for a dish given a set of QA answers.
     """
+    mw = body.qa_answers.manual_weight_g
+    if mw is not None and mw < 5:
+        raise HTTPException(
+            status_code=400,
+            detail="Manual weight must be at least 5 grams.",
+        )
+
     conn = db.get_db()
     try:
         cur = conn.cursor()

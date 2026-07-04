@@ -23,6 +23,7 @@ struct DishMatch: Codable {
     let hasCreamInBase: Int
     let dairyFatAlreadyCounted: Int
     let foodCategory: String?
+    let servingSizeG: Double?
 
     enum CodingKeys: String, CodingKey {
         case foodCode                  = "food_code"
@@ -37,6 +38,7 @@ struct DishMatch: Codable {
         case hasCreamInBase            = "has_cream_in_base"
         case dairyFatAlreadyCounted    = "dairy_fat_already_counted"
         case foodCategory              = "food_category"
+        case servingSizeG              = "serving_size_g"
     }
 }
 
@@ -48,6 +50,7 @@ struct QAQuestion: Identifiable {
     let options: [QAOption]
     let required: Bool
     let affects: String
+    var allowsManualWeight: Bool = false
 }
 
 struct QAOption: Identifiable {
@@ -66,6 +69,7 @@ struct QAAnswers: Codable {
     var cookingMethod: String? = nil
     var flatAdditions: [String] = []
     var questionsSkipped: Int = 0
+    var manualWeightG: Double? = nil
 
     enum CodingKeys: String, CodingKey {
         case portionSize       = "portion_size"
@@ -76,6 +80,7 @@ struct QAAnswers: Codable {
         case cookingMethod     = "cooking_method"
         case flatAdditions     = "flat_additions"
         case questionsSkipped  = "questions_skipped"
+        case manualWeightG     = "manual_weight_g"
     }
 }
 

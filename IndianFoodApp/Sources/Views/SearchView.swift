@@ -5,6 +5,7 @@ import SwiftUI
 struct SearchView: View {
     let onSelect: (SearchResult) -> Void
     let onCancel: () -> Void
+    var onBarcodeScan: (() -> Void)? = nil
 
     @StateObject private var vm = SearchViewModel()
 
@@ -35,6 +36,14 @@ struct SearchView: View {
 
                 Button("Cancel", action: onCancel)
                     .foregroundColor(.orange)
+
+                if let onBarcodeScan {
+                    Button(action: onBarcodeScan) {
+                        Image(systemName: "barcode.viewfinder")
+                            .font(.title3)
+                            .foregroundColor(.orange)
+                    }
+                }
             }
             .padding()
 

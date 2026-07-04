@@ -2,6 +2,9 @@ import Foundation
 
 class QuestionEngine: ObservableObject {
 
+    /// Responses dict value prefix marking an exact-weight answer, e.g. "manual:150.0"
+    static let manualWeightPrefix = "manual:"
+
     // MARK: - Main entry point
     func generateQuestions(for dish: DishMatch?,
                            classificationResult: ClassificationResult?) -> [QAQuestion] {
@@ -141,7 +144,8 @@ class QuestionEngine: ObservableObject {
                     QAOption(id: "full_bowl",      value: "full_bowl",     label: "Full bowl",      hint: "~480g"),
                 ],
                 required: true,
-                affects: "rice_scale"
+                affects: "rice_scale",
+                allowsManualWeight: true
             ),
             QAQuestion(
                 id: "rice_type",
@@ -173,7 +177,8 @@ class QuestionEngine: ObservableObject {
                 question: "How big is your portion?",
                 options: portionSizeOptions(),
                 required: true,
-                affects: "portion_scale"
+                affects: "portion_scale",
+                allowsManualWeight: true
             ),
             QAQuestion(
                 id: "cooking_context",
@@ -212,7 +217,8 @@ class QuestionEngine: ObservableObject {
                 question: "How big is your portion?",
                 options: portionSizeOptions(),
                 required: true,
-                affects: "portion_scale"
+                affects: "portion_scale",
+                allowsManualWeight: true
             ),
             QAQuestion(
                 id: "meat_amount",
@@ -279,7 +285,8 @@ class QuestionEngine: ObservableObject {
                 question: "How big is your portion?",
                 options: portionSizeOptions(),
                 required: true,
-                affects: "portion_scale"
+                affects: "portion_scale",
+                allowsManualWeight: true
             ),
             QAQuestion(
                 id: "cooking_context",
@@ -318,7 +325,8 @@ class QuestionEngine: ObservableObject {
                 question: "How big is your portion?",
                 options: portionSizeOptions(),
                 required: true,
-                affects: "portion_scale"
+                affects: "portion_scale",
+                allowsManualWeight: true
             ),
             QAQuestion(
                 id: "cooking_context",
@@ -363,7 +371,8 @@ class QuestionEngine: ObservableObject {
                     QAOption(id: "extra_large", value: "extra_large", label: "Full plate",      hint: ""),
                 ],
                 required: true,
-                affects: "portion_scale"
+                affects: "portion_scale",
+                allowsManualWeight: true
             ),
             QAQuestion(
                 id: "cooking_context",
@@ -405,7 +414,8 @@ class QuestionEngine: ObservableObject {
                     QAOption(id: "extra_large", value: "extra_large", label: "Small bowl",         hint: "~200g"),
                 ],
                 required: true,
-                affects: "portion_scale"
+                affects: "portion_scale",
+                allowsManualWeight: true
             ),
             QAQuestion(
                 id: "sweet_context",
@@ -435,7 +445,8 @@ class QuestionEngine: ObservableObject {
                     QAOption(id: "large",    value: "large",    label: "Large bowl",  hint: "~120g"),
                 ],
                 required: true,
-                affects: "portion_scale"
+                affects: "portion_scale",
+                allowsManualWeight: true
             ),
         ]
     }
@@ -531,6 +542,14 @@ class QuestionEngine: ObservableObject {
                 if question.required { skipped += 1 }
                 continue
             }
+            // Manual weight entry ("manual:<grams>") replaces the bucket answer
+            if question.allowsManualWeight,
+               response.hasPrefix(Self.manualWeightPrefix),
+               let grams = Double(response.dropFirst(Self.manualWeightPrefix.count)) {
+                answers.manualWeightG = grams
+                continue
+            }
+
             switch question.id {
             case "portion_size", "beverage_size", "bread_pieces":
                 answers.portionSize = response

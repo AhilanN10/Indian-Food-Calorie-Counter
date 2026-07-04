@@ -1,19 +1,12 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - Daily Goals (hardcoded defaults for now)
-
-struct DailyGoals {
-    static let kcal:    Double = 2000
-    static let protein: Double = 150
-    static let carbs:   Double = 250
-    static let fat:     Double = 65
-}
-
 // MARK: - DashboardView
 
 struct DashboardView: View {
+    @EnvironmentObject private var profileStore: ProfileStore
     @Query private var allLogs: [MealLog]
+    @State private var bannerDismissed = false
 
     private var todayLogs: [MealLog] {
         let calendar = Calendar.current
@@ -25,8 +18,13 @@ struct DashboardView: View {
     private var totalCarbs:   Double { todayLogs.reduce(0) { $0 + $1.carbG } }
     private var totalFat:     Double { todayLogs.reduce(0) { $0 + $1.fatG } }
 
-    private var kcalRemaining: Double { max(0, DailyGoals.kcal - totalKcal) }
-    private var kcalProgress:  Double { min(1.0, totalKcal / DailyGoals.kcal) }
+    private var kcalGoal:    Double { Double(profileStore.dailyCalorieGoal) }
+    private var proteinGoal:  Double { profileStore.dailyProteinGoal }
+    private var carbsGoal:    Double { profileStore.dailyCarbsGoal }
+    private var fatGoal:      Double { profileStore.dailyFatGoal }
+
+    private var kcalRemaining: Double { max(0, kcalGoal - totalKcal) }
+    private var kcalProgress:  Double { min(1.0, totalKcal / max(1, kcalGoal)) }
 
     private var mealGroups: [(MealType, [MealLog])] {
         MealType.allCases.compactMap { type in
@@ -39,17 +37,22 @@ struct DashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Profile setup banner (shown once until dismissed)
+                    if profileStore.profile == nil && !bannerDismissed {
+                        profileBanner
+                    }
+
                     CalorieRingCard(
                         consumed:  totalKcal,
-                        goal:      DailyGoals.kcal,
+                        goal:      kcalGoal,
                         remaining: kcalRemaining,
                         progress:  kcalProgress
                     )
 
                     MacroBarsCard(
-                        protein:     totalProtein, proteinGoal: DailyGoals.protein,
-                        carbs:       totalCarbs,   carbsGoal:   DailyGoals.carbs,
-                        fat:         totalFat,     fatGoal:     DailyGoals.fat
+                        protein:     totalProtein, proteinGoal: proteinGoal,
+                        carbs:       totalCarbs,   carbsGoal:   carbsGoal,
+                        fat:         totalFat,     fatGoal:     fatGoal
                     )
 
                     if todayLogs.isEmpty {
@@ -67,6 +70,36 @@ struct DashboardView: View {
             .navigationBarTitleDisplayMode(.large)
             .background(Color(.systemGroupedBackground))
         }
+    }
+
+    // MARK: - Profile banner
+
+    private var profileBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "person.crop.circle.badge.plus")
+                .foregroundColor(.orange)
+                .font(.title3)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Personalise your goal")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Text("Set up your profile for accurate calorie targets.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Button {
+                withAnimation { bannerDismissed = true }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 14)
+            .fill(Color.orange.opacity(0.10)))
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     private var dateTitle: String {

@@ -10,6 +10,13 @@
 		16852A833ABDEDC9F1527ED6 /* MealLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B699717C0D83AA422750AB1 /* MealLog.swift */; };
 		26B77DF65E3139BCB8B0B561 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124946DF6839AECC9939EC46 /* ResultsView.swift */; };
 		348C1F9C2FF77117008F2BDA /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348C1F9B2FF77117008F2BDA /* HealthKitService.swift */; };
+		348C1F9F2FF7755E008F2BDA /* BarcodeScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348C1F9D2FF7755E008F2BDA /* BarcodeScanner.swift */; };
+		348C1FA02FF7755E008F2BDA /* OpenFoodFactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348C1F9E2FF7755E008F2BDA /* OpenFoodFactsService.swift */; };
+		348C1FA22FF77567008F2BDA /* BarcodeResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348C1FA12FF77567008F2BDA /* BarcodeResultView.swift */; };
+		34BDCB1D2FF8ACB2002B4F82 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34BDCB1C2FF8ACB2002B4F82 /* UserProfile.swift */; };
+		34BDCB202FF8ACCB002B4F82 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34BDCB1E2FF8ACCB002B4F82 /* ProfileStore.swift */; };
+		34BDCB212FF8ACCB002B4F82 /* TDEECalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34BDCB1F2FF8ACCB002B4F82 /* TDEECalculator.swift */; };
+		34BDCB232FF8ACD5002B4F82 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34BDCB222FF8ACD5002B4F82 /* ProfileView.swift */; };
 		34D4007F2FF7213B00BDB1EF /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D4007D2FF7213B00BDB1EF /* DashboardView.swift */; };
 		34D400802FF7213B00BDB1EF /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D4007E2FF7213B00BDB1EF /* LogView.swift */; };
 		3AFF9595ED58A67B3284B11B /* VisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D7A982B799E06A530793DB /* VisionService.swift */; };
@@ -34,6 +41,13 @@
 		2BDFD6B894BB2AAD3269F8DF /* IndianFoodClassifier.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = IndianFoodClassifier.mlpackage; sourceTree = "<group>"; };
 		348C1F9A2FF76F4C008F2BDA /* IndianFoodApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IndianFoodApp.entitlements; sourceTree = "<group>"; };
 		348C1F9B2FF77117008F2BDA /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		348C1F9D2FF7755E008F2BDA /* BarcodeScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScanner.swift; sourceTree = "<group>"; };
+		348C1F9E2FF7755E008F2BDA /* OpenFoodFactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenFoodFactsService.swift; sourceTree = "<group>"; };
+		348C1FA12FF77567008F2BDA /* BarcodeResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeResultView.swift; sourceTree = "<group>"; };
+		34BDCB1C2FF8ACB2002B4F82 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		34BDCB1E2FF8ACCB002B4F82 /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStore.swift; sourceTree = "<group>"; };
+		34BDCB1F2FF8ACCB002B4F82 /* TDEECalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TDEECalculator.swift; sourceTree = "<group>"; };
+		34BDCB222FF8ACD5002B4F82 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		34D4007D2FF7213B00BDB1EF /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		34D4007E2FF7213B00BDB1EF /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 		42EBE009C39D71726400CF53 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
@@ -79,6 +93,10 @@
 		5E6F0186A6BBCD8453067F6A /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				34BDCB1E2FF8ACCB002B4F82 /* ProfileStore.swift */,
+				34BDCB1F2FF8ACCB002B4F82 /* TDEECalculator.swift */,
+				348C1F9D2FF7755E008F2BDA /* BarcodeScanner.swift */,
+				348C1F9E2FF7755E008F2BDA /* OpenFoodFactsService.swift */,
 				348C1F9B2FF77117008F2BDA /* HealthKitService.swift */,
 				9BF94D9328E3D6CFB188D92D /* APIService.swift */,
 				F9BDF1439D3614B16A005D05 /* QuestionEngine.swift */,
@@ -111,6 +129,7 @@
 		9BC75D37B8D90545B12E2651 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				34BDCB1C2FF8ACB2002B4F82 /* UserProfile.swift */,
 				FE73FE792C37F7F3912AEE6D /* DishModels.swift */,
 				1B699717C0D83AA422750AB1 /* MealLog.swift */,
 			);
@@ -120,6 +139,8 @@
 		9C724F705FAF7F32029E79A0 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				34BDCB222FF8ACD5002B4F82 /* ProfileView.swift */,
+				348C1FA12FF77567008F2BDA /* BarcodeResultView.swift */,
 				34D4007D2FF7213B00BDB1EF /* DashboardView.swift */,
 				34D4007E2FF7213B00BDB1EF /* LogView.swift */,
 				42EBE009C39D71726400CF53 /* CameraView.swift */,
@@ -198,6 +219,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				348C1F9C2FF77117008F2BDA /* HealthKitService.swift in Sources */,
+				348C1FA22FF77567008F2BDA /* BarcodeResultView.swift in Sources */,
 				968DF595A7922C56DB62BA7A /* APIService.swift in Sources */,
 				A8BE1F2E5C83386FB1BC6A2A /* CameraView.swift in Sources */,
 				628A4D7698734FC9B6B9B792 /* ContentView.swift in Sources */,
@@ -208,6 +230,12 @@
 				34D400802FF7213B00BDB1EF /* LogView.swift in Sources */,
 				CA5DD4F7BAE25FB2CEAA9666 /* MealHistoryView.swift in Sources */,
 				16852A833ABDEDC9F1527ED6 /* MealLog.swift in Sources */,
+				34BDCB1D2FF8ACB2002B4F82 /* UserProfile.swift in Sources */,
+				34BDCB202FF8ACCB002B4F82 /* ProfileStore.swift in Sources */,
+				34BDCB212FF8ACCB002B4F82 /* TDEECalculator.swift in Sources */,
+				348C1F9F2FF7755E008F2BDA /* BarcodeScanner.swift in Sources */,
+				348C1FA02FF7755E008F2BDA /* OpenFoodFactsService.swift in Sources */,
+				34BDCB232FF8ACD5002B4F82 /* ProfileView.swift in Sources */,
 				EEDB4E6D38248CE5FDF31556 /* QuestionEngine.swift in Sources */,
 				4F35B05DF20D0A489B54D3C6 /* QuestionView.swift in Sources */,
 				26B77DF65E3139BCB8B0B561 /* ResultsView.swift in Sources */,

@@ -11,6 +11,9 @@ enum AppState {
     case questioning(DishMatch, ClassificationResult)
     case calculating
     case results(String, String, MacroResult)  // dishName, foodCode, result
+    case scanningBarcode
+    case barcodeResult(BarcodeResult)
+    case barcodeNotFound(String)
     case error(String)
 }
 
@@ -71,6 +74,22 @@ class AppViewModel: ObservableObject {
 
     func confirmClass(_ className: String, result: ClassificationResult) async {
         await resolveAndProceed(className: className, result: result)
+    }
+
+    // MARK: - Barcode
+
+    func openBarcodeScanner() {
+        state = .scanningBarcode
+    }
+
+    func handleBarcode(_ barcode: String) async {
+        state = .classifying   // reuse the scanning spinner
+        let result = await OpenFoodFactsService.shared.lookup(barcode: barcode)
+        if let result {
+            state = .barcodeResult(result)
+        } else {
+            state = .barcodeNotFound(barcode)
+        }
     }
 
     // MARK: - Search
@@ -170,6 +189,10 @@ struct ContentView: View {
                 MealHistoryView()
                     .tabItem { Label("History", systemImage: "calendar") }
                     .tag(2)
+
+                ProfileView()
+                    .tabItem { Label("Profile", systemImage: "person.circle") }
+                    .tag(3)
             }
 
             // Scanning flow overlay — covers tabs during an active scan
@@ -228,14 +251,16 @@ struct ScanFlowView: View {
                         onSelect: { result in
                             Task { await vm.handleSearchSelection(result, classResult: classResult) }
                         },
-                        onCancel: { vm.reset() }
+                        onCancel:      { vm.reset() },
+                        onBarcodeScan: { vm.openBarcodeScanner() }
                     )
 
                 case .questioning(let dish, _):
                     QuestionView(
-                        questions: vm.questions,
-                        dishName:  dish.foodName,
-                        responses: $vm.questionResponses
+                        questions:    vm.questions,
+                        dishName:     dish.foodName,
+                        servingSizeG: dish.servingSizeG,
+                        responses:    $vm.questionResponses
                     ) {
                         vm.submitAnswers(dish: dish)
                     }
@@ -245,10 +270,26 @@ struct ScanFlowView: View {
 
                 case .results(let name, let foodCode, let result):
                     ResultsView(
-                        dishName:   name,
-                        foodCode:   foodCode,
-                        result:     result,
-                        onDone:     { vm.finishLogging() }
+                        dishName: name,
+                        foodCode: foodCode,
+                        result:   result,
+                        onDone:   { vm.finishLogging() }
+                    )
+
+                case .scanningBarcode:
+                    BarcodeScannerView(
+                        onScan:   { barcode in Task { await vm.handleBarcode(barcode) } },
+                        onCancel: { vm.reset() }
+                    )
+                    .ignoresSafeArea()
+
+                case .barcodeResult(let result):
+                    BarcodeResultView(result: result) { vm.finishLogging() }
+
+                case .barcodeNotFound(let barcode):
+                    ErrorView(
+                        message:  "No product found for barcode:\n\(barcode)\n\nTry searching manually.",
+                        onRetry:  { vm.reset() }
                     )
 
                 case .error(let msg):

@@ -41,6 +41,36 @@ class MealLog {
         self.confidenceBandPct   = result.confidenceBandPct
         self.adjustmentsApplied  = result.adjustmentsApplied
     }
+
+    /// Direct init for barcode-scanned packaged items (no MacroResult needed).
+    convenience init(
+        dishName:     String,
+        foodCode:     String,
+        kcalEstimate: Double,
+        proteinG:     Double,
+        fatG:         Double,
+        carbG:        Double,
+        fibreG:       Double,
+        mealType:     String
+    ) {
+        self.init(
+            dishName: dishName,
+            foodCode: foodCode,
+            result: MacroResult(
+                kcalEstimate:       kcalEstimate,
+                kcalLow:            kcalEstimate * 0.9,
+                kcalHigh:           kcalEstimate * 1.1,
+                proteinG:           proteinG,
+                fatG:               fatG,
+                carbG:              carbG,
+                fibreG:             fibreG,
+                confidenceBandPct:  0.05,
+                questionsSkipped:   0,
+                adjustmentsApplied: ["barcode_scan"]
+            ),
+            mealType: mealType
+        )
+    }
 }
 
 // MARK: - MealType

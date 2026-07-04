@@ -56,6 +56,18 @@ struct LogView: View {
                     }
 
                     Button {
+                        vm.openBarcodeScanner()
+                    } label: {
+                        Label("Scan Barcode", systemImage: "barcode.viewfinder")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.orange.opacity(0.85))
+                            .cornerRadius(14)
+                    }
+
+                    Button {
                         vm.capturedImage    = nil
                         vm.showPhotoLibrary = true
                     } label: {

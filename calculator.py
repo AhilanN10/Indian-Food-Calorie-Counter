@@ -97,12 +97,38 @@ def _safe(val, default: float = 0.0) -> float:
     return float(val) if val is not None else default
 
 
-def _confidence(skipped: int) -> float:
+def _confidence(skipped: int, manual_weight_used: bool = False) -> float:
     if skipped in CONFIDENCE_BANDS:
-        return CONFIDENCE_BANDS[skipped]
-    if skipped > 3:
-        return CONFIDENCE_BANDS[3]
-    return CONFIDENCE_BANDS["ml_fallback"]
+        band = CONFIDENCE_BANDS[skipped]
+    elif skipped > 3:
+        band = CONFIDENCE_BANDS[3]
+    else:
+        band = CONFIDENCE_BANDS["ml_fallback"]
+
+    # Manual weight is more precise than a bucket guess: tighten one tier
+    # (never below the best tier of ±10%).
+    if manual_weight_used:
+        tiers = [0.10, 0.18, 0.28, 0.40, 0.50]
+        idx   = tiers.index(band) if band in tiers else len(tiers) - 1
+        band  = tiers[max(0, idx - 1)]
+
+    return band
+
+
+def _bucket_scale(dish: dict, qa_answers: dict, adjustments: list[str],
+                  is_rice: bool, is_meat: bool) -> float:
+    """Fixed bucket-multiplier lookup (rice/meat/portion scales)."""
+    if is_rice and qa_answers.get("rice_amount"):
+        scale = RICE_SCALE.get(qa_answers["rice_amount"], 1.0)
+        adjustments.append(f"rice_scale_{qa_answers['rice_amount']}_{scale}")
+    elif is_meat and qa_answers.get("meat_amount"):
+        scale = MEAT_SCALE.get(qa_answers["meat_amount"], 1.0)
+        adjustments.append(f"meat_scale_{qa_answers['meat_amount']}_{scale}")
+    else:
+        ps    = qa_answers.get("portion_size", "standard")
+        scale = PORTION_SCALE.get(ps, 1.0)
+        adjustments.append(f"portion_scale_{scale}")
+    return scale
 
 
 # ---------------------------------------------------------------------------
@@ -115,7 +141,8 @@ def calculate_macros(dish: dict, qa_answers: dict) -> dict:
 
     qa_answers keys (all optional – defaults are "standard" / "home" / "medium"):
       portion_size, rice_amount, meat_amount, cooking_context,
-      gravy_type, cooking_method, flat_additions, questions_skipped
+      gravy_type, cooking_method, flat_additions, questions_skipped,
+      manual_weight_g (exact grams – overrides all portion buckets)
     """
     adjustments: list[str] = []
 
@@ -126,16 +153,23 @@ def calculate_macros(dish: dict, qa_answers: dict) -> dict:
     is_rice    = food_cat == "rice"
     is_meat    = food_cat == "meat_fish"
 
-    if is_rice and qa_answers.get("rice_amount"):
-        scale = RICE_SCALE.get(qa_answers["rice_amount"], 1.0)
-        adjustments.append(f"rice_scale_{qa_answers['rice_amount']}_{scale}")
-    elif is_meat and qa_answers.get("meat_amount"):
-        scale = MEAT_SCALE.get(qa_answers["meat_amount"], 1.0)
-        adjustments.append(f"meat_scale_{qa_answers['meat_amount']}_{scale}")
+    manual_weight_g    = qa_answers.get("manual_weight_g")
+    serving_size_g     = _safe(dish.get("serving_size_g"))
+    manual_weight_used = False
+
+    if manual_weight_g and serving_size_g > 0:
+        # Exact weight takes precedence over every bucket lookup
+        scale = float(manual_weight_g) / serving_size_g
+        manual_weight_used = True
+        adjustments.append(
+            f"manual_weight_{manual_weight_g}g_of_{serving_size_g}g_scale_{round(scale, 3)}"
+        )
+    elif manual_weight_g:
+        # Dish has no usable serving weight – fall back to bucket
+        adjustments.append("manual_weight_ignored_no_serving_size_g")
+        scale = _bucket_scale(dish, qa_answers, adjustments, is_rice, is_meat)
     else:
-        ps    = qa_answers.get("portion_size", "standard")
-        scale = PORTION_SCALE.get(ps, 1.0)
-        adjustments.append(f"portion_scale_{scale}")
+        scale = _bucket_scale(dish, qa_answers, adjustments, is_rice, is_meat)
 
     # Base macros (per-serving from DB)
     protein_g = _safe(dish.get("protein_g_per_serving")) * scale
@@ -215,7 +249,7 @@ def calculate_macros(dish: dict, qa_answers: dict) -> dict:
     # Step 5 – Confidence band
     # -----------------------------------------------------------------------
     skipped   = int(qa_answers.get("questions_skipped", 0))
-    band_pct  = _confidence(skipped)
+    band_pct  = _confidence(skipped, manual_weight_used=manual_weight_used)
     kcal_low  = round(kcal_estimate * (1 - band_pct))
     kcal_high = round(kcal_estimate * (1 + band_pct))
 
@@ -231,6 +265,7 @@ def calculate_macros(dish: dict, qa_answers: dict) -> dict:
         "fibre_g":             round(fibre_g, 1),
         "confidence_band_pct": band_pct,
         "questions_skipped":   skipped,
+        "manual_weight_used":  manual_weight_used,
         "dairy_flag_applied":  dairy_flag_applied,
         "adjustments_applied": adjustments,
     }

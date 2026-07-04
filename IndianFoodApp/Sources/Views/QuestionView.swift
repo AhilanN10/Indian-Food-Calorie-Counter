@@ -3,13 +3,44 @@ import SwiftUI
 struct QuestionView: View {
     let questions: [QAQuestion]
     let dishName: String
+    let servingSizeG: Double?
     @Binding var responses: [String: String]
     let onComplete: () -> Void
 
+    @EnvironmentObject private var profileStore: ProfileStore
     @State private var currentIndex = 0
+
+    // Manual weight entry
+    @State private var manualEntryActive     = false
+    @State private var weightInput           = ""
+    @State private var showLargePortionAlert = false
+
+    private let ozToGrams = 28.3495
 
     var currentQuestion: QAQuestion { questions[currentIndex] }
     var progress: Double { Double(currentIndex + 1) / Double(questions.count) }
+
+    private var usesImperial: Bool {
+        (profileStore.profile?.unitSystem ?? .metric) == .imperial
+    }
+    private var unitLabel: String { usesImperial ? "oz" : "g" }
+
+    /// Entered value converted to canonical grams (nil if not a valid number)
+    private var enteredGrams: Double? {
+        let normalised = weightInput.replacingOccurrences(of: ",", with: ".")
+        guard let value = Double(normalised), value > 0 else { return nil }
+        return usesImperial ? value * ozToGrams : value
+    }
+
+    private var belowMinimum: Bool {
+        guard let grams = enteredGrams else { return false }
+        return grams < 5
+    }
+
+    /// Manual entry offered only when the dish has a usable standard serving weight
+    private var manualWeightAvailable: Bool {
+        currentQuestion.allowsManualWeight && (servingSizeG ?? 0) > 0
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,22 +73,39 @@ struct QuestionView: View {
                         .padding(.horizontal)
                         .padding(.top, 24)
 
-                    // Options
-                    VStack(spacing: 10) {
-                        ForEach(currentQuestion.options) { option in
-                            OptionButton(
-                                option: option,
-                                isSelected: responses[currentQuestion.id] == option.value
-                            ) {
-                                responses[currentQuestion.id] = option.value
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                                    advance()
+                    if manualEntryActive {
+                        manualWeightEntry
+                            .padding(.horizontal)
+                            .padding(.bottom, 32)
+                    } else {
+                        // Options
+                        VStack(spacing: 10) {
+                            ForEach(currentQuestion.options) { option in
+                                OptionButton(
+                                    option: option,
+                                    isSelected: responses[currentQuestion.id] == option.value
+                                ) {
+                                    responses[currentQuestion.id] = option.value
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                                        advance()
+                                    }
                                 }
                             }
+
+                            if manualWeightAvailable {
+                                Button {
+                                    withAnimation { activateManualEntry() }
+                                } label: {
+                                    Label("Enter exact weight instead?", systemImage: "scalemass")
+                                        .font(.callout)
+                                        .foregroundColor(.orange)
+                                }
+                                .padding(.top, 8)
+                            }
                         }
+                        .padding(.horizontal)
+                        .padding(.bottom, 32)
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, 32)
                 }
             }
 
@@ -90,6 +138,127 @@ struct QuestionView: View {
         }
         .navigationTitle("About Your Food")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { syncManualState() }
+        .onChange(of: currentIndex) { _, _ in syncManualState() }
+        .alert("Large portion", isPresented: $showLargePortionAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Confirm") { saveManualWeight() }
+        } message: {
+            Text("That's more than 5x the standard serving (\(standardServingText)). Log it anyway?")
+        }
+    }
+
+    // MARK: - Manual weight entry
+
+    private var manualWeightEntry: some View {
+        VStack(spacing: 14) {
+            HStack {
+                TextField("Weight", text: $weightInput)
+                    .keyboardType(.decimalPad)
+                    .font(.title3)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(belowMinimum ? Color.red : Color.orange, lineWidth: 1.5)
+                    )
+                Text(unitLabel)
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+            }
+
+            if belowMinimum {
+                Text("Minimum is 5g\(usesImperial ? " (about 0.2 oz)" : "")")
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if let ssg = servingSizeG, ssg > 0 {
+                Text("Standard serving: \(standardServingText)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Button {
+                commitManualWeight()
+            } label: {
+                Text("Use This Weight")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(enteredGrams != nil && !belowMinimum ? Color.orange : Color(.systemGray4))
+                    .cornerRadius(12)
+            }
+            .disabled(enteredGrams == nil || belowMinimum)
+
+            Button {
+                withAnimation { deactivateManualEntry() }
+            } label: {
+                Text("Choose a portion size instead")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private var standardServingText: String {
+        guard let ssg = servingSizeG, ssg > 0 else { return "" }
+        if usesImperial {
+            return String(format: "%.1f oz (%.0fg)", ssg / ozToGrams, ssg)
+        }
+        return String(format: "%.0fg", ssg)
+    }
+
+    private func activateManualEntry() {
+        // A previously selected bucket no longer applies
+        responses.removeValue(forKey: currentQuestion.id)
+        weightInput = ""
+        manualEntryActive = true
+    }
+
+    private func deactivateManualEntry() {
+        if let resp = responses[currentQuestion.id],
+           resp.hasPrefix(QuestionEngine.manualWeightPrefix) {
+            responses.removeValue(forKey: currentQuestion.id)
+        }
+        weightInput = ""
+        manualEntryActive = false
+    }
+
+    private func commitManualWeight() {
+        guard let grams = enteredGrams, grams >= 5 else { return }
+        if let ssg = servingSizeG, ssg > 0, grams > ssg * 5 {
+            showLargePortionAlert = true
+            return
+        }
+        saveManualWeight()
+    }
+
+    private func saveManualWeight() {
+        guard let grams = enteredGrams else { return }
+        responses[currentQuestion.id] = "\(QuestionEngine.manualWeightPrefix)\(grams)"
+        advance()
+    }
+
+    /// Restore manual-entry state when landing on a question (e.g. via Back)
+    private func syncManualState() {
+        let prefix = QuestionEngine.manualWeightPrefix
+        if let resp = responses[currentQuestion.id],
+           resp.hasPrefix(prefix),
+           let grams = Double(resp.dropFirst(prefix.count)) {
+            manualEntryActive = true
+            let display = usesImperial ? grams / ozToGrams : grams
+            weightInput = display == display.rounded()
+                ? String(format: "%.0f", display)
+                : String(format: "%.1f", display)
+        } else {
+            manualEntryActive = false
+            weightInput = ""
+        }
     }
 
     private func advance() {
