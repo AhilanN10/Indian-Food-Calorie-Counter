@@ -72,6 +72,33 @@ enum DietaryFilter: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - FastingMode
+
+/// Navratri/Ekadashi fasting-day filtering. Unlike DietaryFilter (per-session,
+/// seeded from Profile but toggled freely in Search), this is a standing
+/// multi-day observance persisted directly to UserDefaults by FastingModeStore
+/// so it survives relaunch and applies everywhere immediately.
+enum FastingMode: String, Codable, CaseIterable, Identifiable {
+    case none     = "none"
+    case navratri = "navratri"
+    case ekadashi = "ekadashi"
+
+    var id: String { rawValue }
+
+    var displayLabel: String {
+        switch self {
+        case .none:     return "None"
+        case .navratri: return "Navratri"
+        case .ekadashi: return "Ekadashi"
+        }
+    }
+
+    /// Query-param token sent to the backend; nil when no fasting mode is active.
+    var queryParam: String? {
+        self == .none ? nil : rawValue
+    }
+}
+
 // MARK: - MacroOverride
 
 /// User-supplied custom macro targets. nil = use calculated values.

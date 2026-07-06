@@ -82,6 +82,15 @@ DIETARY_FILTER_COLUMNS: dict[str, str] = {
     "dairy_free":      "is_dairy_free",
 }
 
+# Fasting Mode (Navratri/Ekadashi) — a separate concept from dietary filters
+# in the UI, but reuses the exact same AND-of-flag-columns filtering plumbing
+# on the backend (_passes_dietary_filters / diet_clause) rather than a
+# parallel filtering path.
+FASTING_FILTER_COLUMNS: dict[str, str] = {
+    "navratri": "navratri_permitted",
+    "ekadashi": "ekadashi_permitted",
+}
+
 
 def _parse_dietary_filters(raw: str | None) -> list[str]:
     """
@@ -103,6 +112,20 @@ def _parse_dietary_filters(raw: str | None) -> list[str]:
             )
         columns.append(DIETARY_FILTER_COLUMNS[token])
     return columns
+
+
+def _parse_fasting_mode(raw: str | None) -> str | None:
+    """Parse the fastingMode param into a flag column name. Raises 400 on unknown values."""
+    if not raw:
+        return None
+    token = raw.strip().lower()
+    if token not in FASTING_FILTER_COLUMNS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown fasting mode '{token}'. "
+                   f"Valid values: {', '.join(sorted(FASTING_FILTER_COLUMNS))}",
+        )
+    return FASTING_FILTER_COLUMNS[token]
 
 
 def _passes_dietary_filters(dish_dict: dict, filter_columns: list[str]) -> bool:
@@ -142,6 +165,11 @@ def dish_search(
         description="Comma-separated: vegetarian, vegan, jain, no_onion_garlic, gluten_free, dairy_free. "
                     "All must be satisfied; dishes with unknown (NULL) flags are excluded.",
     ),
+    fastingMode: str | None = Query(
+        None,
+        description="Optional: navratri or ekadashi. Combines with dietaryFilters using AND logic "
+                    "(same flag-column plumbing); dishes with unknown (NULL) flags are excluded.",
+    ),
 ):
     """
     Three-tier lookup (exact → alias → fuzzy).
@@ -149,6 +177,9 @@ def dish_search(
     Excludes is_recipe_level = 1 rows.
     """
     diet_columns = _parse_dietary_filters(dietaryFilters)
+    fasting_column = _parse_fasting_mode(fastingMode)
+    if fasting_column:
+        diet_columns.append(fasting_column)
 
     def _to_result(dish_dict: dict, match_type: str, score: int) -> dict | None:
         """Convert a dish row to a SearchResult dict, applying category filter."""
@@ -225,12 +256,20 @@ def dish_browse(
         description="Comma-separated: vegetarian, vegan, jain, no_onion_garlic, gluten_free, dairy_free. "
                     "All must be satisfied; dishes with unknown (NULL) flags are excluded.",
     ),
+    fastingMode: str | None = Query(
+        None,
+        description="Optional: navratri or ekadashi. Combines with dietaryFilters using AND logic "
+                    "(same flag-column plumbing); dishes with unknown (NULL) flags are excluded.",
+    ),
 ):
     """
     Return dishes grouped by food_category (max 10 per category).
     Only includes available dishes (is_recipe_level = 0 or NULL).
     """
     diet_columns = _parse_dietary_filters(dietaryFilters)
+    fasting_column = _parse_fasting_mode(fastingMode)
+    if fasting_column:
+        diet_columns.append(fasting_column)
     diet_clause  = "".join(f" AND {col} = 1" for col in diet_columns)
 
     conn = db.get_db()

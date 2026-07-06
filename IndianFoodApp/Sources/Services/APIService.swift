@@ -86,7 +86,8 @@ class APIService: ObservableObject {
     // MARK: - /dish/search  (list shape)
 
     func searchDishes(query: String, limit: Int = 8, category: String? = nil,
-                      dietaryFilters: Set<DietaryFilter> = []) async throws -> SearchResponse? {
+                      dietaryFilters: Set<DietaryFilter> = [],
+                      fastingMode: FastingMode = .none) async throws -> SearchResponse? {
         var components = URLComponents(string: "\(baseURL)/dish/search")!
         var queryItems = [
             URLQueryItem(name: "q",     value: query),
@@ -98,6 +99,9 @@ class APIService: ObservableObject {
         if !dietaryFilters.isEmpty {
             queryItems.append(URLQueryItem(name: "dietaryFilters",
                                            value: Self.filterParam(dietaryFilters)))
+        }
+        if let fastingParam = fastingMode.queryParam {
+            queryItems.append(URLQueryItem(name: "fastingMode", value: fastingParam))
         }
         components.queryItems = queryItems
         guard let url = components.url else { return nil }
@@ -114,11 +118,19 @@ class APIService: ObservableObject {
 
     // MARK: - /dish/browse
 
-    func browseDishes(dietaryFilters: Set<DietaryFilter> = []) async throws -> BrowseResponse? {
+    func browseDishes(dietaryFilters: Set<DietaryFilter> = [],
+                      fastingMode: FastingMode = .none) async throws -> BrowseResponse? {
         var components = URLComponents(string: "\(baseURL)/dish/browse")!
+        var queryItems: [URLQueryItem] = []
         if !dietaryFilters.isEmpty {
-            components.queryItems = [URLQueryItem(name: "dietaryFilters",
-                                                  value: Self.filterParam(dietaryFilters))]
+            queryItems.append(URLQueryItem(name: "dietaryFilters",
+                                           value: Self.filterParam(dietaryFilters)))
+        }
+        if let fastingParam = fastingMode.queryParam {
+            queryItems.append(URLQueryItem(name: "fastingMode", value: fastingParam))
+        }
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
         }
         guard let url = components.url else { return nil }
         let (data, response) = try await session.data(from: url)

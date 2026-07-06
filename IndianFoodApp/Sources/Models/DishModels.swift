@@ -31,6 +31,9 @@ struct DishMatch: Codable {
     let isNoOnionGarlic: Int?
     let isGlutenFree: Int?
     let isDairyFree: Int?
+    // Fasting flags: 1 = permitted, 0 = restricted, nil = unknown/unreviewed
+    let navratriPermitted: Int?
+    let ekadashiPermitted: Int?
 
     enum CodingKeys: String, CodingKey {
         case foodCode                  = "food_code"
@@ -52,6 +55,8 @@ struct DishMatch: Codable {
         case isNoOnionGarlic           = "is_no_onion_garlic"
         case isGlutenFree              = "is_gluten_free"
         case isDairyFree               = "is_dairy_free"
+        case navratriPermitted         = "navratri_permitted"
+        case ekadashiPermitted         = "ekadashi_permitted"
     }
 
     /// Flag value for a dietary preference (1 compliant, 0 violates, nil unknown)
@@ -63,6 +68,27 @@ struct DishMatch: Codable {
         case .noOnionGarlic: return isNoOnionGarlic
         case .glutenFree:    return isGlutenFree
         case .dairyFree:     return isDairyFree
+        }
+    }
+
+    /// Flag value for the active fasting mode (1 permitted, 0 restricted, nil unknown).
+    /// nil when no fasting mode is active (.none has no flag column to check).
+    func fastingFlag(for mode: FastingMode) -> Int? {
+        switch mode {
+        case .none:     return nil
+        case .navratri: return navratriPermitted
+        case .ekadashi: return ekadashiPermitted
+        }
+    }
+}
+
+extension FastingMode {
+    /// Shown in the scan-flow warning banner when a dish's fasting flag is 0
+    var conflictMessage: String? {
+        switch self {
+        case .none:     return nil
+        case .navratri: return "Not permitted during Navratri fasting"
+        case .ekadashi: return "Not permitted during Ekadashi fasting"
         }
     }
 }

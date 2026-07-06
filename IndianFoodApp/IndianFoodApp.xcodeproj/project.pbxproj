@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		16852A833ABDEDC9F1527ED6 /* MealLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B699717C0D83AA422750AB1 /* MealLog.swift */; };
-		72CE20579A3C9236B9975824 /* FavoriteDish.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D60CEF0C9A1EC0379C302A5 /* FavoriteDish.swift */; };
-		FE18902A699BA8440D08BE78 /* RecentSearchesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B72895B415DD6764EF3066F9 /* RecentSearchesStore.swift */; };
 		26B77DF65E3139BCB8B0B561 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124946DF6839AECC9939EC46 /* ResultsView.swift */; };
 		348C1F9C2FF77117008F2BDA /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348C1F9B2FF77117008F2BDA /* HealthKitService.swift */; };
 		348C1F9F2FF7755E008F2BDA /* BarcodeScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348C1F9D2FF7755E008F2BDA /* BarcodeScanner.swift */; };
@@ -28,21 +26,24 @@
 		5757D7506AD15FF58A08F5D3 /* IndianFoodApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F368BB966F7F4B2C79E5D3 /* IndianFoodApp.swift */; };
 		628A4D7698734FC9B6B9B792 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5601BFF07F585C312E3A048F /* ContentView.swift */; };
 		71FF45BB2739650E29D47439 /* IndianFoodClassifier.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 2BDFD6B894BB2AAD3269F8DF /* IndianFoodClassifier.mlpackage */; };
+		72CE20579A3C9236B9975824 /* FavoriteDish.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D60CEF0C9A1EC0379C302A5 /* FavoriteDish.swift */; };
 		84A09DDA4A31D4DBA7B438AF /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DBDBA6029936BF362C9CE6E /* SearchView.swift */; };
 		968DF595A7922C56DB62BA7A /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF94D9328E3D6CFB188D92D /* APIService.swift */; };
 		A8BE1F2E5C83386FB1BC6A2A /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42EBE009C39D71726400CF53 /* CameraView.swift */; };
+		B886AB0CFEB3E037E5818B60 /* FastingModeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267255B4CA62A613FDAB712D /* FastingModeStore.swift */; };
 		CA5DD4F7BAE25FB2CEAA9666 /* MealHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8C4158B254524D3BF06D7E /* MealHistoryView.swift */; };
 		EEDB4E6D38248CE5FDF31556 /* QuestionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9BDF1439D3614B16A005D05 /* QuestionEngine.swift */; };
+		FE18902A699BA8440D08BE78 /* RecentSearchesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B72895B415DD6764EF3066F9 /* RecentSearchesStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		124946DF6839AECC9939EC46 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
 		1B699717C0D83AA422750AB1 /* MealLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealLog.swift; sourceTree = "<group>"; };
-		2D60CEF0C9A1EC0379C302A5 /* FavoriteDish.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteDish.swift; sourceTree = "<group>"; };
-		B72895B415DD6764EF3066F9 /* RecentSearchesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentSearchesStore.swift; sourceTree = "<group>"; };
 		1DBDBA6029936BF362C9CE6E /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		2538D9B7ADE6160A26F9130D /* QuestionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionView.swift; sourceTree = "<group>"; };
+		267255B4CA62A613FDAB712D /* FastingModeStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FastingModeStore.swift; sourceTree = "<group>"; };
 		2BDFD6B894BB2AAD3269F8DF /* IndianFoodClassifier.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = IndianFoodClassifier.mlpackage; sourceTree = "<group>"; };
+		2D60CEF0C9A1EC0379C302A5 /* FavoriteDish.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteDish.swift; sourceTree = "<group>"; };
 		348C1F9A2FF76F4C008F2BDA /* IndianFoodApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IndianFoodApp.entitlements; sourceTree = "<group>"; };
 		348C1F9B2FF77117008F2BDA /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 		348C1F9D2FF7755E008F2BDA /* BarcodeScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScanner.swift; sourceTree = "<group>"; };
@@ -61,6 +62,7 @@
 		75CCBCEE06CAFAFE9CCBCBF8 /* class_map.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = class_map.json; sourceTree = "<group>"; };
 		9BF94D9328E3D6CFB188D92D /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
 		A6D7A982B799E06A530793DB /* VisionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionService.swift; sourceTree = "<group>"; };
+		B72895B415DD6764EF3066F9 /* RecentSearchesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentSearchesStore.swift; sourceTree = "<group>"; };
 		E9F368BB966F7F4B2C79E5D3 /* IndianFoodApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndianFoodApp.swift; sourceTree = "<group>"; };
 		F9BDF1439D3614B16A005D05 /* QuestionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionEngine.swift; sourceTree = "<group>"; };
 		FD8C4158B254524D3BF06D7E /* MealHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealHistoryView.swift; sourceTree = "<group>"; };
@@ -106,6 +108,7 @@
 				F9BDF1439D3614B16A005D05 /* QuestionEngine.swift */,
 				A6D7A982B799E06A530793DB /* VisionService.swift */,
 				B72895B415DD6764EF3066F9 /* RecentSearchesStore.swift */,
+				267255B4CA62A613FDAB712D /* FastingModeStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -174,8 +177,6 @@
 			dependencies = (
 			);
 			name = IndianFoodApp;
-			packageProductDependencies = (
-			);
 			productName = IndianFoodApp;
 			productReference = 5C51C6F4972C3EDBD90959F7 /* IndianFoodApp.app */;
 			productType = "com.apple.product-type.application";
@@ -249,6 +250,7 @@
 				3AFF9595ED58A67B3284B11B /* VisionService.swift in Sources */,
 				72CE20579A3C9236B9975824 /* FavoriteDish.swift in Sources */,
 				FE18902A699BA8440D08BE78 /* RecentSearchesStore.swift in Sources */,
+				B886AB0CFEB3E037E5818B60 /* FastingModeStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

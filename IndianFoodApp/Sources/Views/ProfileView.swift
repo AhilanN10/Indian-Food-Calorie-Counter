@@ -4,17 +4,27 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject private var store: ProfileStore
+    @ObservedObject private var fastingModeStore = FastingModeStore.shared
     @State private var showForm = false
 
     var body: some View {
         NavigationStack {
-            Group {
-                if let profile = store.profile {
-                    profileSummary(profile)
-                } else {
-                    setupPrompt
+            VStack(spacing: 0) {
+                // Always visible regardless of profile state — Fasting Mode
+                // persists independently of UserProfile (see FastingModeStore).
+                fastingModeCard
+                    .padding(.horizontal)
+                    .padding(.top, 12)
+
+                Group {
+                    if let profile = store.profile {
+                        profileSummary(profile)
+                    } else {
+                        setupPrompt
+                    }
                 }
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showForm) {
@@ -23,6 +33,34 @@ struct ProfileView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Fasting Mode card (always visible)
+
+    private var fastingModeCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Fasting Mode", systemImage: "moon.stars.fill")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.orange)
+
+            Picker("Fasting Mode", selection: Binding(
+                get: { fastingModeStore.mode },
+                set: { fastingModeStore.mode = $0 }
+            )) {
+                ForEach(FastingMode.allCases) { mode in
+                    Text(mode.displayLabel).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Text("Filters search and browse to dishes permitted for the selected fast, combined with any active dietary filters. Persists across app relaunch, unlike the per-session search filter chips.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(.systemBackground)))
+        .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 1)
     }
 
     // MARK: - Setup prompt (no profile yet)

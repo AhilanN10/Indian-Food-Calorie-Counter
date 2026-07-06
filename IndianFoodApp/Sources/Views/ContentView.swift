@@ -142,10 +142,14 @@ class AppViewModel: ObservableObject {
     }
 
     /// Informational only – shown as a dismissible banner on the results
-    /// screen, never blocks logging.
+    /// screen, never blocks logging. Covers both dietary preferences and the
+    /// active Fasting Mode (same banner mechanism, reused rather than a
+    /// parallel warning path) — applies whether the dish came from the
+    /// camera/classify flow or a search/browse selection, since both funnel
+    /// through proceed(with:result:).
     private func computeDietWarnings(for dish: DishMatch) -> [String] {
         let preferences = ProfileStore.shared.dietaryPreferences
-        guard !preferences.isEmpty else { return [] }
+        let fastingMode = FastingModeStore.shared.mode
 
         var warnings: [String] = []
         var anyUnknown = false
@@ -159,6 +163,15 @@ class AppViewModel: ObservableObject {
         if anyUnknown {
             warnings.append("Diet info unavailable for this dish")
         }
+
+        if fastingMode != .none {
+            switch dish.fastingFlag(for: fastingMode) {
+            case 0:   warnings.append(fastingMode.conflictMessage ?? "")
+            case nil: warnings.append("Fasting info unavailable for this dish")
+            default:  break
+            }
+        }
+
         return warnings
     }
 
@@ -276,7 +289,11 @@ struct ScanFlowView: View {
                             Task { await vm.handleSearchSelection(result, classResult: classResult) }
                         },
                         onCancel:      { vm.reset() },
-                        onBarcodeScan: { vm.openBarcodeScanner() }
+                        onBarcodeScan: { vm.openBarcodeScanner() },
+                        onOpenFastingSettings: {
+                            vm.reset()
+                            vm.selectedTab = 3
+                        }
                     )
 
                 case .questioning(let dish, _):

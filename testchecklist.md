@@ -319,3 +319,174 @@ call — recipe-level dishes are not surfaced in search at all, in any form.
 - [ ] Full whitespace re-scan: `SELECT COUNT(*) FROM dishes WHERE food_name != TRIM(food_name)` → 0
 - [ ] `Bhel puri` row: `food_category = 'snack_street'`, `food_name` has no trailing space
 - [ ] iOS SearchView: searching "Bhel puri" shows the "No dishes found" empty state (fork/knife icon), not a stray unrelated result
+
+## Fasting Mode — Navratri & Ekadashi (added 2026-07-06)
+
+Scope: Navratri and Ekadashi only. Ramzan is out of scope (time-window based, not
+food-composition based — separate design work later).
+
+### ⚠️ MANUAL SIGN-OFF REQUIRED — ambiguous dish review list
+`phase_fasting_tagging.py`'s keyword pass left **37 dishes NULL** rather than
+guessing (27 with no restricted/permitted keyword signal at all, plus 10 more added
+2026-07-06 after a correction — see below). These are excluded from fasting-filtered
+results until manually adjudicated. **This item is not to be marked verified by
+Claude — needs Ahilan's manual sign-off.**
+- [ ] Review and adjudicate (permitted / restricted / leave as unknown) each of:
+  Apple oats chia seed smoothie OSR007 · Baked vegetables ASC208 · Bengal 5 Spice
+  Blend (Panch Phoran) OSR082 · Brinjal pickle (Baingan ka achaar) BFP597 · Broccoli
+  delight BFP279 · Cabbage and peas (Pattagobhi aur matar) ASC173 · Canjee BFP029 ·
+  Carrot and fenugreek leaves (Gajar methi) ASC174 · Carrot murabba (Gajar ka
+  murabba) ASC504 · Cauliflower canjee (Phoolgobhi ki canjee) BFP030 · Chat masala
+  BFP002 · Cucumber sharbat (Kheere ka sharbat) OSR006 · Finger millet biscuit (Ragi
+  biscuit) OSR031 · Fruit salad (Phalon ka salaad) ASC265 · Garam masala BFP001 ·
+  Ginger candy (Adrak ki candy) ASC506 · Green chilli sauce BFP163 · Green tomato
+  pickle (Haray tamatar ka achaar) OSR057 · Hot cherry sauce BFP360 · Jam filling
+  BFP480 · Jhatpat achar with carrot (Jhatpat achaar gajar ke saath) BFP599 · Kulfi
+  ASC321 · Lotus stem pickle (Kamal kakdi ka achar) OSR050 · Makki ki roti ASC150 ·
+  Masala arbi BFP264 · Oatmeal Porridge ASC050 · Oats burfi OSR019 · Pasta cheese
+  sauce ASC132 · Pav bhaji masala OSR097 · Pickled cabbage OSR058 · Pickled mustard
+  greens OSR055 · Saunth/Sonth chutney with tamarind/imli ASC281 · Sesame ladoo (Til
+  ke ladoo) ASC344 · Stuffed bittergourd (dry) (Bharwa karela) BFP604 · Stuffed
+  brinjal (Bharwa baingan) ASC187 · Stuffed okra (Bharwa bhindi) ASC184 · Tomato
+  puree ASC515
+
+### Correction applied 2026-07-06, before commit (caught in review, not silently left)
+The first pass tagged 10 of the dishes above as **permitted=1** on the strength of
+an incidental dairy/fruit/nut ingredient (e.g. ghee), without the dish's actual
+starch (millet/corn/oats/ragi) ever being evaluated against the permitted list —
+since corn/oats/ragi were never on the permitted-starch list (only kuttu, singhara,
+rajgira, sabudana are), a permitted=1 tag resting entirely on a side ingredient is a
+likely-incorrect tag, not a defensible judgment call. Root cause: the tagging logic
+only checked "is there a permitted signal AND no restricted signal," which doesn't
+verify the *grain itself* was the source of that signal.
+- [x] Added `GRAIN_NO_SIGNAL_KEYWORDS` check to `phase_fasting_tagging.py`: any
+  dish containing jowar/bajra/ragi/maize/corn/oat/quinoa/barley now gets its
+  provisional `permitted=1` downgraded to `NULL` instead, same as any other
+  unresolved case. Baked into the reusable script, not a one-off DB patch — a
+  from-scratch rerun reproduces this correctly.
+- [x] Re-ran full script against a fresh restore of the pre-tagging DB backup;
+  confirmed via direct SQL: all 10 affected dishes (Apple oats chia seed smoothie,
+  Baked vegetables, Finger millet biscuit, Fruit salad, Hot cherry sauce, Kulfi,
+  Makki ki roti, Oatmeal Porridge, Oats burfi, Pasta cheese sauce) now read
+  `navratri_permitted = NULL, ekadashi_permitted = NULL`; prior fixes (Amaranth
+  ladoo, Gooseberry marmalade still = 1; Carrot murabba still correctly NULL) did
+  not regress.
+- [x] Counts after correction: `navratri_permitted` / `ekadashi_permitted` — 166
+  permitted(1), 747 restricted(0), 101 NULL each (was 176/747/91 before the fix).
+
+### Known limitations (documented, not bugs)
+- [ ] "Salt" is generic in this DB (no distinct sendha namak/rock salt vs. iodized
+  table salt ingredient token) — deliberately not used as a keyword at all, since it
+  would blanket-restrict nearly every dish. Not fixable without better source data.
+- [ ] Root vegetables besides potato/sweet potato (beetroot, radish, carrot, turnip,
+  colocasia/arbi, yam) and generic non-root vegetables (spinach, cauliflower, bottle
+  gourd, etc.) are genuinely disputed by region/tradition and intentionally NOT
+  tagged either direction — a dish whose only signal is one of these lands in the
+  37-item review list above, not silently resolved.
+- [ ] Millets/oats/corn/quinoa/barley are treated as no-signal (neither permitted
+  nor restricted — spec only named wheat/rice explicitly) — as of the 2026-07-06
+  correction above, a dish containing one of these can no longer resolve to
+  permitted=1 via an unrelated ingredient; it now correctly lands in the review
+  list instead.
+- [ ] Ekadashi non-veg/alcohol restriction was extended by assumption — the spec's
+  Ekadashi-restricted bullet list only explicitly named grains/lentils/onion/garlic;
+  non-veg/alcohol restriction was added on the reasoning that an Ekadashi fast
+  wouldn't permit either. Flag if this doesn't match actual practice.
+- [ ] The two flag columns (`navratri_permitted`, `ekadashi_permitted`) are
+  numerically identical for every dish in the current DB (166 permitted / 747
+  restricted / 101 NULL each) — not a bug, just a fact about this ingredient data:
+  the Navratri-only extras (kuttu/buckwheat, singhara, rajgira/amaranth, sendha
+  namak) either don't appear as a dish's sole distinguishing ingredient, or the dish
+  also independently qualifies under Ekadashi's shared fruit/dairy/nut/potato/sabudana
+  list. Could diverge with future data.
+
+### Data tagging bugs found and fixed before verification (see phase_fasting_tagging.py)
+- Root cause: "buckwheat" contains "wheat" as a substring, so every kuttu/buckwheat
+  dish was self-triggering the wheat-grain restriction — exactly the dishes this
+  column exists to mark permitted. Fixed by blanking "buckwheat" out of the
+  restricted-keyword pass only (permitted-keyword pass still sees it intact).
+- Root cause: Latin binomial names in ingredient strings caused false substring
+  matches — "Prunus amygdalus" (almond) contains "dal", "Saccharum officinarum"
+  (jaggery/cane sugar) contains "rum". Fixed by stripping parenthetical content
+  before keyword matching.
+- Root cause: "ham"/"rum" as plain substrings matched "Banana...montham" and
+  "Drumstick". Fixed with word-boundary regex for these two keywords specifically.
+- Root cause: "orange"/"cherry" fruit keywords matched "Carrot, orange" (color
+  descriptor), "Pumpkin, orange, round", and "Tomatoes, cherry" (variety name, not
+  the fruit). Fixed with targeted exception phrases.
+- Gap found: "Amla" (Indian gooseberry) wasn't caught by the "gooseberr" keyword
+  since the DB uses the Hindi name as its own ingredient token — added "amla" as a
+  fruit keyword.
+- [x] Re-ran full false-positive audit against all 391 distinct ingredient names in
+  the DB after each fix — verified via direct SQL (see conversation record 2026-07-06)
+
+### Backend filtering (GET /dish/search, /dish/browse) — verified live 2026-07-06
+- [x] `/dish/search?q=idli&fastingMode=ramzan` → HTTP 400, `"Unknown fasting mode
+  'ramzan'. Valid values: ekadashi, navratri"`
+- [x] `/dish/search?q=aloo paratha&fastingMode=navratri` → 0 results (wheat);
+  unfiltered control for the same query still finds a match
+- [x] AND logic: `/dish/search?q=amaranth ladoo&fastingMode=navratri` → 1 result;
+  adding `&dietaryFilters=vegan` → 0 results (ghee in the dish correctly excludes it
+  once vegan is ANDed in)
+- [x] AND logic on browse: `/dish/browse?fastingMode=navratri` → 66 dishes;
+  `&dietaryFilters=jain` → 60 dishes
+- [x] NULL fasting flags never pass a filter (same semantics as existing dietary
+  filter columns — reuses `_passes_dietary_filters`/`diet_clause`, not a parallel
+  filtering path)
+
+### iOS UI — verified in Simulator (iPhone 17, iOS 26.5) 2026-07-06
+- [x] Fasting Mode card in Profile tab is visible even with no profile set up
+  (independent of UserProfile/ProfileStore — own UserDefaults key via
+  FastingModeStore)
+- [x] Three-state segmented picker: None / Navratri / Ekadashi, all three selectable
+- [x] Persistence: selected Navratri → force-terminated app (not just backgrounded)
+  → relaunched → Navratri still selected
+- [x] Search view shows a read-only "Fasting: Navratri" pill (orange when active,
+  grey "Fasting Mode" when None) separate from the existing Filters pill/sheet — no
+  seventh toggle was added to DietaryFiltersSheet
+- [x] Tapping the Fasting pill in Search dismisses the scan flow and jumps to the
+  Profile tab (confirmed via screenshot before/after)
+- [x] Search/browse results live-update when Fasting Mode changes, and reflect
+  whatever the store currently holds on every fresh Search view open (confirmed via
+  backend request log: reopening Search after switching Profile to Ekadashi sent
+  `fastingMode=ekadashi` with no other action needed)
+- [x] AND logic in UI: toggled Vegan in Filters sheet while Navratri active →
+  browse results changed (dairy-containing "Cold coffee with cream" and "Makki ki
+  roti" dropped out; confirmed via screenshot + Filters pill showing "(1)" alongside
+  "Fasting: Navratri")
+- [x] Conflict banner: selected "Masala dosa" (Favorite, not backend-filtered,
+  rice-based → navratri_permitted=0) with Navratri active → results screen showed
+  "⚠ Not permitted during Navratri fasting" banner
+- [x] Banner is dismissible (X button) and non-blocking — "Add to Lunch" still
+  available before and after dismissal
+- [x] NULL-flag banner: favorited "Makki ki roti" (confirmed NULL for both fasts
+  after the grain-contamination correction above) while Fasting Mode = None,
+  switched to Navratri, selected it from Favorites → results screen showed
+  "⚠ Fasting info unavailable for this dish", dismissible, non-blocking (verified
+  2026-07-06 after restarting the backend against the corrected DB)
+- [ ] NOT yet tested: real-device behavior (only verified in Simulator this session)
+
+### Assumptions made this session (flagging per CLAUDE.md review workflow)
+- Fasting Mode entry point placement: picker lives in Profile (source of truth),
+  read-only indicator pill in Search jumps to Profile to change it — this was a
+  design choice presented to and confirmed by Ahilan before implementation, not
+  something inferred silently.
+- Backend: `fastingMode` is a separate query param (not folded into
+  `dietaryFilters`'s comma list) that gets merged into the same flag-column list
+  server-side before filtering — reuses all existing AND-filtering plumbing.
+- `FastingModeStore.swift` was added to the Xcode target programmatically (via the
+  `xcodeproj` Ruby gem, installed this session for this purpose) rather than left
+  for manual Xcode-GUI addition, so the project would build for Simulator
+  verification. Mirrors exactly where `ProfileStore.swift` sits in the project
+  structure (Services group).
+  - [x] Verified 2026-07-06: opened the actual `.xcodeproj` in Xcode itself (not
+    just read the diff) — no repair/recovery prompt on open, no red or missing
+    file references anywhere in the navigator, no duplicate entries, no
+    "Recovered References" group. File Inspector on FastingModeStore.swift shows
+    correct full path and "IndianFoodApp" checked under Target Membership.
+    Triggered Product → Build from the Xcode UI directly (not the CLI) →
+    succeeded. `git diff` on `project.pbxproj` shows only the expected addition
+    (file ref + build file + Services group membership) plus incidental
+    alphabetical resorting of two pre-existing entries and removal of an empty
+    `packageProductDependencies = ();` line — both harmless side effects of the
+    gem rewriting the file, not scope creep.

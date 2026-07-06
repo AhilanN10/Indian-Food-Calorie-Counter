@@ -7,10 +7,14 @@ struct SearchView: View {
     let onSelect: (SearchResult) -> Void
     let onCancel: () -> Void
     var onBarcodeScan: (() -> Void)? = nil
+    /// Optional: called when the user taps the Fasting Mode pill to change it
+    /// elsewhere (Profile tab). nil-safe no-op if the caller doesn't wire it.
+    var onOpenFastingSettings: (() -> Void)? = nil
 
     @EnvironmentObject private var profileStore: ProfileStore
     @StateObject private var vm = SearchViewModel()
     @StateObject private var recentSearchesStore = RecentSearchesStore()
+    @ObservedObject private var fastingModeStore = FastingModeStore.shared
 
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \FavoriteDish.dateAdded, order: .reverse) private var favorites: [FavoriteDish]
@@ -78,6 +82,9 @@ struct SearchView: View {
                     FiltersPillButton(count: vm.dietaryFilters.count) {
                         draftDietaryFilters = vm.dietaryFilters
                         showFiltersSheet = true
+                    }
+                    FastingModePillButton(mode: fastingModeStore.mode) {
+                        onOpenFastingSettings?()
                     }
                 }
                 .padding(.horizontal)
@@ -158,10 +165,14 @@ struct SearchView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             vm.seedFiltersIfNeeded(from: profileStore.dietaryPreferences)
+            vm.fastingMode = fastingModeStore.mode
             await vm.loadBrowse()
         }
         .onChange(of: vm.query) { _ in
             vm.handleQueryChanged()
+        }
+        .onChange(of: fastingModeStore.mode) { newMode in
+            Task { await vm.syncFastingMode(newMode) }
         }
         .sheet(isPresented: $showFiltersSheet) {
             DietaryFiltersSheet(draftFilters: $draftDietaryFilters) {
@@ -241,6 +252,32 @@ struct FiltersPillButton: View {
             .padding(.vertical, 6)
             .background(count > 0 ? Color.orange : Color(.systemGray6))
             .foregroundColor(count > 0 ? .white : .primary)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - FastingModePillButton
+
+/// Read-only indicator of the active Fasting Mode — the picker itself lives
+/// in Profile (single source of truth); tapping this jumps there to change it.
+struct FastingModePillButton: View {
+    let mode: FastingMode
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: "moon.stars.fill")
+                Text(mode == .none ? "Fasting Mode" : "Fasting: \(mode.displayLabel)")
+            }
+            .font(.caption)
+            .fontWeight(mode == .none ? .regular : .semibold)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(mode == .none ? Color(.systemGray6) : Color.orange)
+            .foregroundColor(mode == .none ? .primary : .white)
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -565,6 +602,7 @@ class SearchViewModel: ObservableObject {
     @Published var selectedCategory: String? = nil
     @Published var browseData: BrowseResponse? = nil
     @Published var dietaryFilters: Set<DietaryFilter> = []
+    @Published var fastingMode: FastingMode = .none
 
     private let api = APIService()
     private var filtersSeeded = false
@@ -618,10 +656,12 @@ class SearchViewModel: ObservableObject {
         isLoading = true
         let requestCategory = selectedCategory
         let requestFilters  = dietaryFilters
+        let requestFasting  = fastingMode
         let task = Task<SearchResponse?, Never> { [api] in
             (try? await api.searchDishes(
                 query: trimmed, limit: 8,
-                category: requestCategory, dietaryFilters: requestFilters
+                category: requestCategory, dietaryFilters: requestFilters,
+                fastingMode: requestFasting
             )) ?? nil
         }
         searchTask = task
@@ -635,7 +675,7 @@ class SearchViewModel: ObservableObject {
 
     func loadBrowse(force: Bool = false) async {
         guard force || browseData == nil else { return }
-        browseData = try? await api.browseDishes(dietaryFilters: dietaryFilters)
+        browseData = try? await api.browseDishes(dietaryFilters: dietaryFilters, fastingMode: fastingMode)
     }
 
     /// Copy profile preferences into the session filters exactly once per
@@ -650,6 +690,16 @@ class SearchViewModel: ObservableObject {
     /// same as the old per-chip toggle — never writes back to the saved profile.
     func applyDietaryFilters(_ filters: Set<DietaryFilter>) async {
         dietaryFilters = filters
+        await loadBrowse(force: true)
+        await searchNow()
+    }
+
+    /// Reacts to a live change in the shared FastingModeStore (unlike
+    /// dietaryFilters, this is NOT session-local — it always reflects the
+    /// current standing value, so a change re-runs the active browse/search).
+    func syncFastingMode(_ mode: FastingMode) async {
+        guard fastingMode != mode else { return }
+        fastingMode = mode
         await loadBrowse(force: true)
         await searchNow()
     }
