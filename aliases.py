@@ -87,9 +87,9 @@ def resolve_dish_name(name: str, force_fuzzy: bool = False) -> dict:
         # ------------------------------------------------------------------
         # Tier 3 – fuzzy match
         # ------------------------------------------------------------------
+        # SELECT * so downstream filters (category, diet flags) see all columns
         cur.execute(
-            "SELECT food_code, food_name, energy_kcal_per_serving, food_category "
-            "FROM dishes "
+            "SELECT * FROM dishes "
             "WHERE is_recipe_level = 0 OR is_recipe_level IS NULL"
         )
         all_dishes = cur.fetchall()

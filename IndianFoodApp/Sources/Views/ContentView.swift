@@ -36,6 +36,7 @@ class AppViewModel: ObservableObject {
     @Published var questions: [QAQuestion] = []
     @Published var backendOnline = false
     @Published var selectedTab: Int = 0
+    @Published var dietWarnings: [String] = []
 
     let visionService  = VisionService()
     let apiService     = APIService()
@@ -136,7 +137,29 @@ class AppViewModel: ObservableObject {
     private func proceed(with dish: DishMatch, result: ClassificationResult) {
         questions         = questionEngine.generateQuestions(for: dish, classificationResult: result)
         questionResponses = [:]
+        dietWarnings      = computeDietWarnings(for: dish)
         state = .questioning(dish, result)
+    }
+
+    /// Informational only – shown as a dismissible banner on the results
+    /// screen, never blocks logging.
+    private func computeDietWarnings(for dish: DishMatch) -> [String] {
+        let preferences = ProfileStore.shared.dietaryPreferences
+        guard !preferences.isEmpty else { return [] }
+
+        var warnings: [String] = []
+        var anyUnknown = false
+        for filter in DietaryFilter.allCases where preferences.contains(filter) {
+            switch dish.dietFlag(for: filter) {
+            case 0:   warnings.append(filter.conflictMessage)
+            case nil: anyUnknown = true
+            default:  break
+            }
+        }
+        if anyUnknown {
+            warnings.append("Diet info unavailable for this dish")
+        }
+        return warnings
     }
 
     // MARK: - Calculation
@@ -167,6 +190,7 @@ class AppViewModel: ObservableObject {
         capturedImage     = nil
         questionResponses = [:]
         questions         = []
+        dietWarnings      = []
     }
 }
 
@@ -270,10 +294,11 @@ struct ScanFlowView: View {
 
                 case .results(let name, let foodCode, let result):
                     ResultsView(
-                        dishName: name,
-                        foodCode: foodCode,
-                        result:   result,
-                        onDone:   { vm.finishLogging() }
+                        dishName:     name,
+                        foodCode:     foodCode,
+                        result:       result,
+                        dietWarnings: vm.dietWarnings,
+                        onDone:       { vm.finishLogging() }
                     )
 
                 case .scanningBarcode:

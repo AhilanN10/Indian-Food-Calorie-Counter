@@ -7,6 +7,7 @@ struct SearchView: View {
     let onCancel: () -> Void
     var onBarcodeScan: (() -> Void)? = nil
 
+    @EnvironmentObject private var profileStore: ProfileStore
     @StateObject private var vm = SearchViewModel()
 
     var body: some View {
@@ -61,6 +62,24 @@ struct SearchView: View {
                         ) {
                             vm.selectedCategory = (vm.selectedCategory == cat) ? nil : cat
                             Task { await vm.search() }
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+            }
+
+            // ── Dietary filter chips ────────────────────────────────────────
+            // Pre-checked from profile preferences; toggling is session-local
+            // and never writes back to the saved profile.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(DietaryFilter.allCases) { filter in
+                        CategoryPill(
+                            label: filter.displayLabel,
+                            isSelected: vm.dietaryFilters.contains(filter)
+                        ) {
+                            Task { await vm.toggleFilter(filter) }
                         }
                     }
                 }
@@ -137,7 +156,10 @@ struct SearchView: View {
         }
         .navigationTitle("Search Dishes")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await vm.loadBrowse() }
+        .task {
+            vm.seedFiltersIfNeeded(from: profileStore.dietaryPreferences)
+            await vm.loadBrowse()
+        }
         .onChange(of: vm.query) { _ in
             Task {
                 // 400ms debounce
@@ -263,8 +285,10 @@ class SearchViewModel: ObservableObject {
     @Published var isLoading        = false
     @Published var selectedCategory: String? = nil
     @Published var browseData: BrowseResponse? = nil
+    @Published var dietaryFilters: Set<DietaryFilter> = []
 
     private let api = APIService()
+    private var filtersSeeded = false
 
     static let categories: [String] = [
         "rice", "bread", "dal_legume", "meat_fish",
@@ -282,14 +306,33 @@ class SearchViewModel: ObservableObject {
         let response = try? await api.searchDishes(
             query: trimmed,
             limit: 8,
-            category: selectedCategory
+            category: selectedCategory,
+            dietaryFilters: dietaryFilters
         )
         results   = response?.results ?? []
         isLoading = false
     }
 
-    func loadBrowse() async {
-        guard browseData == nil else { return }
-        browseData = try? await api.browseDishes()
+    func loadBrowse(force: Bool = false) async {
+        guard force || browseData == nil else { return }
+        browseData = try? await api.browseDishes(dietaryFilters: dietaryFilters)
+    }
+
+    /// Copy profile preferences into the session filters exactly once per
+    /// SearchView appearance. Later chip toggles stay session-local.
+    func seedFiltersIfNeeded(from preferences: Set<DietaryFilter>) {
+        guard !filtersSeeded else { return }
+        dietaryFilters = preferences
+        filtersSeeded  = true
+    }
+
+    func toggleFilter(_ filter: DietaryFilter) async {
+        if dietaryFilters.contains(filter) {
+            dietaryFilters.remove(filter)
+        } else {
+            dietaryFilters.insert(filter)
+        }
+        await loadBrowse(force: true)
+        await search()
     }
 }

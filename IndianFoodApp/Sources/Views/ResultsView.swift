@@ -6,6 +6,7 @@ struct ResultsView: View {
     let dishName: String
     let foodCode: String
     let result: MacroResult
+    var dietWarnings: [String] = []
     let onDone: () -> Void
 
     // MARK: - SwiftData + state
@@ -14,6 +15,7 @@ struct ResultsView: View {
     @State private var selectedMealType: MealType = .lunch
     @State private var isLogged = false
     @State private var healthKitLogged = false
+    @State private var dietWarningDismissed = false
 
     // MARK: - Computed
 
@@ -47,6 +49,14 @@ struct ResultsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
+
+                // Diet conflict warning (informational, dismissible)
+                if !dietWarnings.isEmpty && !dietWarningDismissed {
+                    dietWarningBanner
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                        .transition(.opacity)
+                }
 
                 // Dish name + confidence badge
                 VStack(spacing: 6) {
@@ -221,6 +231,35 @@ struct ResultsView: View {
         }
         .navigationTitle("Results")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Diet warning banner
+
+    private var dietWarningBanner: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.yellow)
+                .font(.body)
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(dietWarnings, id: \.self) { warning in
+                    Text(warning)
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 4)
+            Button {
+                withAnimation { dietWarningDismissed = true }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.yellow.opacity(0.15)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.yellow.opacity(0.4), lineWidth: 1))
     }
 
     // MARK: - Log meal

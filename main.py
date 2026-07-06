@@ -73,6 +73,43 @@ def _dish_row_to_dict(row) -> dict:
     return dict(row) if row else None
 
 
+DIETARY_FILTER_COLUMNS: dict[str, str] = {
+    "vegetarian":      "is_vegetarian",
+    "vegan":           "is_vegan",
+    "jain":            "is_jain",
+    "no_onion_garlic": "is_no_onion_garlic",
+    "gluten_free":     "is_gluten_free",
+    "dairy_free":      "is_dairy_free",
+}
+
+
+def _parse_dietary_filters(raw: str | None) -> list[str]:
+    """
+    Parse a comma-separated dietaryFilters param into flag column names.
+    Raises 400 on unknown filter names.
+    """
+    if not raw:
+        return []
+    columns = []
+    for token in raw.split(","):
+        token = token.strip().lower()
+        if not token:
+            continue
+        if token not in DIETARY_FILTER_COLUMNS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown dietary filter '{token}'. "
+                       f"Valid values: {', '.join(sorted(DIETARY_FILTER_COLUMNS))}",
+            )
+        columns.append(DIETARY_FILTER_COLUMNS[token])
+    return columns
+
+
+def _passes_dietary_filters(dish_dict: dict, filter_columns: list[str]) -> bool:
+    """ALL requested flags must be exactly 1. NULL (unknown) does not pass."""
+    return all(dish_dict.get(col) == 1 for col in filter_columns)
+
+
 # ---------------------------------------------------------------------------
 # GET /health
 # ---------------------------------------------------------------------------
@@ -100,12 +137,19 @@ def dish_search(
     q:        str       = Query(..., description="Dish name to search for"),
     limit:    int       = Query(8,   ge=1, le=20, description="Max results (default 8, max 20)"),
     category: str | None = Query(None, description="Filter by food_category"),
+    dietaryFilters: str | None = Query(
+        None,
+        description="Comma-separated: vegetarian, vegan, jain, no_onion_garlic, gluten_free, dairy_free. "
+                    "All must be satisfied; dishes with unknown (NULL) flags are excluded.",
+    ),
 ):
     """
     Three-tier lookup (exact → alias → fuzzy).
     Always returns {query, results[], total} – never a bare dict.
     Excludes is_recipe_level = 1 rows.
     """
+    diet_columns = _parse_dietary_filters(dietaryFilters)
+
     def _to_result(dish_dict: dict, match_type: str, score: int) -> dict | None:
         """Convert a dish row to a SearchResult dict, applying category filter."""
         if dish_dict is None:
@@ -113,6 +157,8 @@ def dish_search(
         if dish_dict.get("is_recipe_level") == 1:
             return None
         if category and dish_dict.get("food_category") != category:
+            return None
+        if diet_columns and not _passes_dietary_filters(dish_dict, diet_columns):
             return None
         return {
             "food_code":              dish_dict.get("food_code"),
@@ -169,19 +215,29 @@ def dish_search(
 # GET /dish/browse
 # ---------------------------------------------------------------------------
 @app.get("/dish/browse", tags=["dishes"])
-def dish_browse():
+def dish_browse(
+    dietaryFilters: str | None = Query(
+        None,
+        description="Comma-separated: vegetarian, vegan, jain, no_onion_garlic, gluten_free, dairy_free. "
+                    "All must be satisfied; dishes with unknown (NULL) flags are excluded.",
+    ),
+):
     """
     Return dishes grouped by food_category (max 10 per category).
     Only includes available dishes (is_recipe_level = 0 or NULL).
     """
+    diet_columns = _parse_dietary_filters(dietaryFilters)
+    diet_clause  = "".join(f" AND {col} = 1" for col in diet_columns)
+
     conn = db.get_db()
     try:
         cur = conn.cursor()
-        cur.execute("""
+        cur.execute(f"""
             SELECT food_code, food_name, energy_kcal_per_serving, food_category
             FROM   dishes
             WHERE  (is_recipe_level = 0 OR is_recipe_level IS NULL)
               AND  food_category IS NOT NULL
+              {diet_clause}
             ORDER BY food_category, food_name
         """)
         rows = cur.fetchall()

@@ -29,6 +29,11 @@ class APIService: ObservableObject {
     private var decoder: JSONDecoder { JSONDecoder() }
     private var encoder: JSONEncoder { JSONEncoder() }
 
+    /// Comma-separated dietaryFilters value (sorted for stable URLs)
+    private static func filterParam(_ filters: Set<DietaryFilter>) -> String {
+        filters.map(\.rawValue).sorted().joined(separator: ",")
+    }
+
     // MARK: - /dish/search
 
     func searchDish(query: String) async throws -> DishMatch? {
@@ -80,7 +85,8 @@ class APIService: ObservableObject {
 
     // MARK: - /dish/search  (list shape)
 
-    func searchDishes(query: String, limit: Int = 8, category: String? = nil) async throws -> SearchResponse? {
+    func searchDishes(query: String, limit: Int = 8, category: String? = nil,
+                      dietaryFilters: Set<DietaryFilter> = []) async throws -> SearchResponse? {
         var components = URLComponents(string: "\(baseURL)/dish/search")!
         var queryItems = [
             URLQueryItem(name: "q",     value: query),
@@ -88,6 +94,10 @@ class APIService: ObservableObject {
         ]
         if let category {
             queryItems.append(URLQueryItem(name: "category", value: category))
+        }
+        if !dietaryFilters.isEmpty {
+            queryItems.append(URLQueryItem(name: "dietaryFilters",
+                                           value: Self.filterParam(dietaryFilters)))
         }
         components.queryItems = queryItems
         guard let url = components.url else { return nil }
@@ -104,8 +114,13 @@ class APIService: ObservableObject {
 
     // MARK: - /dish/browse
 
-    func browseDishes() async throws -> BrowseResponse? {
-        guard let url = URL(string: "\(baseURL)/dish/browse") else { return nil }
+    func browseDishes(dietaryFilters: Set<DietaryFilter> = []) async throws -> BrowseResponse? {
+        var components = URLComponents(string: "\(baseURL)/dish/browse")!
+        if !dietaryFilters.isEmpty {
+            components.queryItems = [URLQueryItem(name: "dietaryFilters",
+                                                  value: Self.filterParam(dietaryFilters))]
+        }
+        guard let url = components.url else { return nil }
         let (data, response) = try await session.data(from: url)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
         do {

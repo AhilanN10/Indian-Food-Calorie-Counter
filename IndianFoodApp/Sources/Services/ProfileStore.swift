@@ -35,6 +35,13 @@ final class ProfileStore: ObservableObject {
         profile = p       // triggers didSet → persist()
     }
 
+    // MARK: - Dietary preferences
+
+    /// Empty set when no profile is set or no preferences chosen.
+    var dietaryPreferences: Set<DietaryFilter> {
+        profile?.dietaryPreferences ?? []
+    }
+
     // MARK: - Computed goals
 
     /// Returns the TDEE-based daily goal if a profile exists, else 2000 (legacy default).

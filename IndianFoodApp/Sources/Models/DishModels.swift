@@ -24,6 +24,13 @@ struct DishMatch: Codable {
     let dairyFatAlreadyCounted: Int
     let foodCategory: String?
     let servingSizeG: Double?
+    // Diet flags: 1 = compliant, 0 = violates, nil = unknown/untagged
+    let isVegetarian: Int?
+    let isVegan: Int?
+    let isJain: Int?
+    let isNoOnionGarlic: Int?
+    let isGlutenFree: Int?
+    let isDairyFree: Int?
 
     enum CodingKeys: String, CodingKey {
         case foodCode                  = "food_code"
@@ -39,6 +46,40 @@ struct DishMatch: Codable {
         case dairyFatAlreadyCounted    = "dairy_fat_already_counted"
         case foodCategory              = "food_category"
         case servingSizeG              = "serving_size_g"
+        case isVegetarian              = "is_vegetarian"
+        case isVegan                   = "is_vegan"
+        case isJain                    = "is_jain"
+        case isNoOnionGarlic           = "is_no_onion_garlic"
+        case isGlutenFree              = "is_gluten_free"
+        case isDairyFree               = "is_dairy_free"
+    }
+
+    /// Flag value for a dietary preference (1 compliant, 0 violates, nil unknown)
+    func dietFlag(for filter: DietaryFilter) -> Int? {
+        switch filter {
+        case .vegetarian:    return isVegetarian
+        case .vegan:         return isVegan
+        case .jain:          return isJain
+        case .noOnionGarlic: return isNoOnionGarlic
+        case .glutenFree:    return isGlutenFree
+        case .dairyFree:     return isDairyFree
+        }
+    }
+}
+
+extension DietaryFilter {
+    /// Shown in the scan-flow warning banner when a dish's flag is 0
+    var conflictMessage: String {
+        let reason: String
+        switch self {
+        case .vegetarian:    reason = "Contains meat, fish, or egg"
+        case .vegan:         reason = "Contains animal products"
+        case .jain:          reason = "Contains root vegetables, onion, or garlic"
+        case .noOnionGarlic: reason = "Contains onion or garlic"
+        case .glutenFree:    reason = "Contains gluten"
+        case .dairyFree:     reason = "Contains dairy"
+        }
+        return "\(reason), which conflicts with your \(displayLabel) preference"
     }
 }
 

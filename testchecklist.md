@@ -175,3 +175,56 @@
 ### Precedence / compatibility
 - [ ] Manual weight on a meat_fish dish overrides both portion_size and meat_amount buckets
 - [ ] Requests without manual_weight_g (old bucket flow) behave exactly as before
+- [ ] No-serving_size_g fallback: POST /dish/calculate for food_code=ASC042 (Paneer pea sandwich, toasted — serving_size_g is NULL) with manual_weight_g=200 → manual_weight_used=false in the response, adjustments_applied contains "manual_weight_ignored_no_serving_size_g" followed by a normal "portion_scale_*" entry, and the bucket portion scale is used instead (verified in code test 2026-07-05)
+
+## Dietary Filters
+
+### Tagging script output (phase_diet_tagging.py)
+- [ ] Re-running the script is idempotent (columns already exist, counts unchanged)
+- [ ] Summary distribution sanity: ~643 vegetarian, ~273 vegan, ~368 jain, ~625 no-onion-garlic, ~572 gluten-free, ~346 dairy-free of 950 tagged; 64 recipe-level dishes NULL across all six flags
+- [ ] Spot-check known dishes in DB:
+  - Paneer butter masala → is_vegetarian=1, is_vegan=0, is_dairy_free=0
+  - Chicken curry → is_vegetarian=0, is_vegan=0, is_jain=0
+  - Fish curry (Machli curry) → is_vegetarian=0 (fish is listed by species "Rohu"; caught by extended keyword list)
+  - Idli → all six flags = 1
+  - Aloo paratha → is_jain=0 (potato), is_gluten_free=0 (atta), is_vegetarian=1
+  - Gulab Jamun with khoya → is_dairy_free=0 (khoa spelling caught), is_vegan=0
+- [ ] Extended keyword false-positive checks: dish using coconut/almond milk NOT marked dairy; peanut butter NOT dairy; buckwheat NOT gluten; "Eggless cake" still is_vegetarian=1 (no egg ingredient)
+- [ ] diet_tags_source = 'auto' for all 1014 rows (manual review workflow comes later)
+
+### Backend filtering (GET /dish/search, /dish/browse)
+- [ ] `/dish/search?q=chicken curry&dietaryFilters=vegetarian` → 0 results; same query unfiltered finds it (verified in code test 2026-07-03)
+- [ ] AND semantics: `q=paneer butter masala&dietaryFilters=vegetarian` finds it; `dietaryFilters=vegetarian,vegan` excludes it (verified 2026-07-03)
+- [ ] `/dish/browse?dietaryFilters=jain,gluten_free` → every returned dish has both flags = 1 (verified: 86 dishes, all checked)
+- [ ] NULL flags never pass a filter: a dish with is_X NULL is excluded when filter X is requested (unknown ≠ compliant)
+- [ ] Unknown filter name (e.g. `dietaryFilters=keto`) → HTTP 400 listing valid values
+- [ ] No dietaryFilters param → search/browse behave exactly as before
+
+### Profile dietary preferences (iOS)
+- [ ] Profile form shows six toggles: Vegetarian, Vegan, Jain, No Onion/Garlic, Gluten-Free, Dairy-Free
+- [ ] Select some → Save → summary grid "Diet" tile lists the chosen labels (or "None")
+- [ ] Force-quit and relaunch → preferences persist
+- [ ] IMPORTANT (migration): a profile saved BEFORE this feature still loads after update — not wiped back to setup prompt (custom decoder defaults missing dietaryPreferences to empty)
+- [ ] Edit profile → previously chosen preferences pre-checked
+
+### Search filter chips (iOS)
+- [ ] Opening search with profile prefs set → matching chips pre-selected, results already filtered
+- [ ] Toggling a chip re-runs both search results and browse tiles immediately
+- [ ] Chip toggles are session-local: change chips in search, then open Profile → saved preferences unchanged
+- [ ] Reopening search later → chips reset to profile preferences (not the previous session's toggles)
+- [ ] No profile at all → no chips selected, unfiltered results
+- [ ] Browse mode (empty query) respects active chips, not just typed searches
+
+### Scan-flow conflict warning (iOS)
+- [ ] With Vegan preference set: scan/select a paneer dish → results screen shows yellow banner "Contains animal products, which conflicts with your Vegan preference"
+- [ ] With Vegetarian preference: chicken/fish dish → banner names the Vegetarian conflict
+- [ ] Multiple conflicting preferences → one banner listing each conflict on its own line
+- [ ] Dish with NULL diet flags + any active preference → banner says "Diet info unavailable for this dish" (never silently passes as compliant)
+- [ ] Banner X dismisses it for that result screen only; logging still works before and after dismissal (never blocks)
+- [ ] No preferences set → no banner ever, even for meat dishes
+- [ ] Compliant dish (e.g. Idli with Vegetarian pref) → no banner
+- [ ] Warning is computed when the dish is resolved (camera AND search selection paths both show it)
+
+### Known limitations (documented, not bugs)
+- [ ] Barcode products are NOT diet-checked (Open Food Facts flow untouched this phase)
+- [ ] Jelly crystals/gum drops (possible gelatin), margarine (possible dairy), fresh ginger (strict Jain) left for manual review — tags may be optimistic for dishes containing them

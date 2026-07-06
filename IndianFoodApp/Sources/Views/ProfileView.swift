@@ -162,7 +162,13 @@ struct ProfileView: View {
             infoTile(icon: "scalemass.fill",    label: "Weight",     value: weightDisplay(profile))
             infoTile(icon: "figure.walk",       label: "Activity",   value: profile.activityLevel.rawValue)
             infoTile(icon: "target",            label: "Adjustment", value: adjustmentDisplay(profile))
+            infoTile(icon: "leaf.fill",         label: "Diet",       value: dietDisplay(profile))
         }
+    }
+
+    private func dietDisplay(_ p: UserProfile) -> String {
+        if p.dietaryPreferences.isEmpty { return "None" }
+        return p.dietaryPreferences.map(\.displayLabel).sorted().joined(separator: ", ")
     }
 
     private func statItem(label: String, value: String) -> some View {
@@ -242,6 +248,9 @@ struct ProfileFormView: View {
     @State private var customCarbs:         Double = 0
     @State private var customFat:           Double = 0
 
+    // Dietary preferences
+    @State private var dietaryPreferences: Set<DietaryFilter> = []
+
     // Cut/Bulk presets
     private let cutOptions:  [Int] = [-250, -500, -750]
     private let bulkOptions: [Int] = [250, 500]
@@ -253,6 +262,7 @@ struct ProfileFormView: View {
                 personalSection
                 activitySection
                 goalSection
+                dietarySection
                 macroOverrideSection
             }
             .navigationTitle(existing == nil ? "Set Up Profile" : "Edit Profile")
@@ -392,6 +402,27 @@ struct ProfileFormView: View {
         }
     }
 
+    // MARK: - Dietary preferences section
+
+    private var dietarySection: some View {
+        Section {
+            ForEach(DietaryFilter.allCases) { filter in
+                Toggle(filter.displayLabel, isOn: Binding(
+                    get: { dietaryPreferences.contains(filter) },
+                    set: { isOn in
+                        if isOn { dietaryPreferences.insert(filter) }
+                        else    { dietaryPreferences.remove(filter) }
+                    }
+                ))
+                .tint(.orange)
+            }
+        } header: {
+            Text("Dietary Preferences")
+        } footer: {
+            Text("Used to pre-filter search results and warn when a scanned dish conflicts. You can still log anything.")
+        }
+    }
+
     // MARK: - Macro override section
 
     private var macroOverrideSection: some View {
@@ -484,15 +515,16 @@ struct ProfileFormView: View {
             : nil
 
         return UserProfile(
-            age:               age,
-            biologicalSex:     biologicalSex,
-            heightCM:          cm,
-            weightKG:          kg,
-            activityLevel:     activityLevel,
-            goalType:          goalType,
-            calorieAdjustment: goalType == .maintain ? 0 : calorieAdjustment,
-            unitSystem:        unitSystem,
-            macroOverride:     override
+            age:                age,
+            biologicalSex:      biologicalSex,
+            heightCM:           cm,
+            weightKG:           kg,
+            activityLevel:      activityLevel,
+            goalType:           goalType,
+            calorieAdjustment:  goalType == .maintain ? 0 : calorieAdjustment,
+            unitSystem:         unitSystem,
+            macroOverride:      override,
+            dietaryPreferences: dietaryPreferences
         )
     }
 
@@ -511,6 +543,7 @@ struct ProfileFormView: View {
         activityLevel     = p.activityLevel
         heightCM          = p.heightCM
         weightKG          = p.weightKG
+        dietaryPreferences = p.dietaryPreferences
         syncImperial()
 
         if let ov = p.macroOverride {
