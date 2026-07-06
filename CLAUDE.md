@@ -20,6 +20,8 @@ git push -u origin main --force
 ```
 testchecklist.md changes should be committed promptly, not left sitting locally — it's been lost to a .git wipe before.
 
+After committing, always push to origin main (`git push origin main`) — don't leave commits sitting local-only, given the repo's history of losing its .git folder entirely.
+
 ## iOS workflow
 
 New Swift files need to be manually added to the Xcode target after creation — right-click the correct folder in Xcode navigator → Add Files to "IndianFoodApp" → check "Add to target: IndianFoodApp". This doesn't happen automatically. Flag clearly when you've created new Swift files so this step isn't missed.
