@@ -10,6 +10,6 @@ struct IndianFoodApp: App {
             ContentView()
                 .environmentObject(profileStore)
         }
-        .modelContainer(for: MealLog.self)
+        .modelContainer(for: [MealLog.self, FavoriteDish.self])
     }
 }

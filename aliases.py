@@ -4,7 +4,7 @@ aliases.py
 Three-tier dish name resolution:
   Tier 1 – exact match on food_name
   Tier 2 – alias table lookup → canonical dish
-  Tier 3 – fuzzy match via fuzzywuzzy (top 3 candidates, score > 60)
+  Tier 3 – fuzzy match via fuzzywuzzy (top candidates, score >= FUZZY_SCORE_CUTOFF)
 """
 
 import os
@@ -13,13 +13,18 @@ os.chdir('/Users/ahilannayani/Personal Python Projects/Indian Food Calorie Count
 from fuzzywuzzy import process
 from db import get_db
 
+# Empirically validated against real typo/alt-spelling cases (e.g. "idly" -> "Idli"
+# scores 75, the lowest legitimate case found) and the "Bhel puri" -> "Oatmeal
+# Porridge"/"Poori" garbage matches (score 60) that motivated raising this from 60.
+FUZZY_SCORE_CUTOFF = 70
+
 
 def _row_to_dict(row) -> dict:
     """Convert a sqlite3.Row to a plain dict."""
     return dict(row) if row is not None else None
 
 
-def resolve_dish_name(name: str, force_fuzzy: bool = False) -> dict:
+def resolve_dish_name(name: str, force_fuzzy: bool = False, limit: int = 3) -> dict:
     """
     Resolve a user-supplied dish name to a canonical INDB dish.
 
@@ -27,7 +32,7 @@ def resolve_dish_name(name: str, force_fuzzy: bool = False) -> dict:
     {
         "match_type": "exact" | "alias" | "fuzzy" | "none",
         "dish": { ...dish row... } | None,
-        "candidates": [ ...top-3 fuzzy matches... ],
+        "candidates": [ ...top `limit` fuzzy matches... ],
         "region": str | None,
         "variant_flag": str | None
     }
@@ -99,7 +104,7 @@ def resolve_dish_name(name: str, force_fuzzy: bool = False) -> dict:
         all_names    = list(name_to_row.keys())
 
         matches = process.extractBests(
-            name, all_names, score_cutoff=60, limit=3
+            name, all_names, score_cutoff=FUZZY_SCORE_CUTOFF, limit=limit
         )
 
         if matches:

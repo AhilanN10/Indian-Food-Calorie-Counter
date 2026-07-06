@@ -179,6 +179,35 @@
 
 ## Dietary Filters
 
+### Known bug (fixed 2026-07-05): stale backend process served pre-fix code
+Reported: searching "paneer kathi roll" (and other paneer dishes) with the Vegan filter
+active returned paneer results even though every paneer dish in the DB is correctly
+tagged `is_vegan=0`.
+
+Root cause was **not** a plumbing defect in the current source — `resolve_dish_name()`
+in aliases.py (exact/alias/fuzzy tiers) and `_to_result()` in main.py already applied
+the diet-filter check identically across all three tiers. Verified directly:
+- "paneer kathi roll" resolves via the **fuzzy tier** (no exact/alias match exists for
+  that exact spelling — the real dish is "Paneer kaathi roll").
+- "shahi paneer" resolves via the **exact tier**; "matar paneer" via the **alias tier**.
+  Both were confirmed to filter correctly against the current source.
+- Every paneer dish in indb.sqlite is `is_vegan=0` — confirmed directly from the DB,
+  ruling out a data-tagging error.
+
+The actual cause: a `uvicorn main:app` process (no `--reload`) had been running since
+before the entire dietaryFilters feature was written and was never restarted, so it
+kept serving stale in-memory code indefinitely while the source on disk was already
+correct. Restarting the process fixed the live bug immediately with zero code changes.
+
+**Fix applied:** restarted the backend process. **Regression coverage added:**
+`test_dietary_filters_regression.py` (project root, run with `python3
+test_dietary_filters_regression.py`) exercises all three tiers by dish *name* (not
+food_code) with the Vegan filter active and asserts no paneer dish survives.
+- [ ] If this bug ever resurfaces, check for a stale non-`--reload` backend process
+  BEFORE assuming the filter logic regressed — this has already fooled one investigation
+- [ ] Run `test_dietary_filters_regression.py` after any change to aliases.py, main.py's
+  dietary filter logic, or the diet tagging columns — all checks must pass
+
 ### Tagging script output (phase_diet_tagging.py)
 - [ ] Re-running the script is idempotent (columns already exist, counts unchanged)
 - [ ] Summary distribution sanity: ~643 vegetarian, ~273 vegan, ~368 jain, ~625 no-onion-garlic, ~572 gluten-free, ~346 dairy-free of 950 tagged; 64 recipe-level dishes NULL across all six flags
@@ -228,3 +257,65 @@
 ### Known limitations (documented, not bugs)
 - [ ] Barcode products are NOT diet-checked (Open Food Facts flow untouched this phase)
 - [ ] Jelly crystals/gum drops (possible gelatin), margarine (possible dairy), fresh ginger (strict Jain) left for manual review — tags may be optimistic for dishes containing them
+
+## Search Quality — Fuzzy Match Threshold & Data Audit (fixed 2026-07-05)
+
+### Bug: "Bhel puri" search returned a garbage fuzzy match
+Reported: searching "Bhel puri" returned exactly one result, "Oatmeal Porridge," tagged
+as a "fuzzy" match — an unrelated dish with no textual similarity to the query.
+
+Root cause (two independent issues):
+1. `aliases.py`'s fuzzy tier used `score_cutoff=60`, too loose for fuzzywuzzy's WRatio
+   on short multi-word dish names. "Bhel puri" vs "Oatmeal Porridge" and vs "Poori"
+   both scored exactly 60 — the current search pool's best (and only) matches, sitting
+   right on the old cutoff.
+2. The real "Bhel puri" dish IS in indb.sqlite (food_code OSR114) but has
+   `is_recipe_level=1`, correctly excluding it from all three resolution tiers — this
+   flag is a deliberate, consistently-applied "no per-serving nutrition computed"
+   marker (confirmed: all 64 `is_recipe_level=1` rows have `energy_kcal_per_serving
+   IS NULL`, and zero `is_recipe_level=0` rows do; see main.py's own error message at
+   the single-dish lookup endpoint). It was **not** mistagged relative to its peers —
+   this is expected/by-design behavior, not a bug. It also had two hygiene issues
+   fixed regardless: a trailing space in `food_name` and `food_category='bread'`
+   (corrected to `snack_street`, matching sibling dishes `Khakhra chaat` / `Spicy corn
+   chaat`, which share the same recipe-level flag).
+
+Full-DB audit performed before fixing:
+- 46 of 950 dishes had leading/trailing whitespace in `food_name` — all trimmed.
+- All 64 `is_recipe_level=1` dishes checked individually; confirmed correct via the
+  NULL-kcal correlation — none required flipping.
+- Keyword sweep for category mismatches (chaat/snack, dessert, dal, meat terms)
+  found one clear hit (Bhel puri, above). ~20 `kheer` (milk-based dessert) dishes are
+  categorized `paneer_dairy` instead of `sweet_dessert` — flagged as a possible
+  separate categorization question, intentionally NOT changed (looks like a scheme
+  choice, not an unambiguous bug; out of scope for this fix).
+
+Fixes applied:
+- [x] `dishes.food_name`: trimmed whitespace on all 46 affected rows
+- [x] `Bhel puri` (OSR114): `food_category` corrected from `bread` to `snack_street`
+- [x] `aliases.py`: `FUZZY_SCORE_CUTOFF` raised from 60 to 70 — validated against real
+  typo/alt-spelling cases via the alias table and manual test queries (e.g. "samber"
+  → Sambar 83, "gulab jamon" → Gulab Jamun 86, "masala dsoa" → Masala dosa 91, "idly"
+  → Idli 75, the lowest legitimate case found). Safe window was empirically 61–75;
+  70 was chosen with margin on both sides.
+- [x] `aliases.py`: `resolve_dish_name()` hardcoded fuzzy `limit=3` replaced with a
+  `limit` parameter, threaded through from `main.py`'s `/dish/search?limit=` query
+  param (both the primary and category-fallback fuzzy call sites)
+- [x] `main.py`: zero-results `suggestion` message no longer says "Showing closest
+  results" when there are no results — now "No close match found. Try a different
+  search term." (separate from the "found weak fuzzy matches" message)
+
+Decision, not a bug: searching "Bhel puri" (and any other `is_recipe_level=1` dish by
+its exact/common name) now correctly returns **zero results** rather than a garbage
+match, since the dish has no per-serving nutrition data to show. This was a deliberate
+call — recipe-level dishes are not surfaced in search at all, in any form.
+
+### Regression checks
+- [ ] `/dish/search?q=Bhel puri` → `{"results": [], "total": 0, "low_confidence": true, "suggestion": "No close match found. Try a different search term."}`
+- [ ] `/dish/search?q=samber` (typo) → still returns Sambar (score 83) and Sambar powder (score 75) as fuzzy matches — cutoff raise did not break legitimate typo matching
+- [ ] `/dish/search?q=Sambar` (correct spelling) → exact match, score 100
+- [ ] `/dish/search?q=idly` (alt spelling) → still returns Idli (score 75) — the tightest legitimate case in the validated cutoff window
+- [ ] `/dish/search?q=<anything>&limit=15` with a query that has >3 real fuzzy candidates → confirm more than 3 fuzzy results can now be returned (hardcoded limit=3 no longer caps below the caller's requested limit)
+- [ ] Full whitespace re-scan: `SELECT COUNT(*) FROM dishes WHERE food_name != TRIM(food_name)` → 0
+- [ ] `Bhel puri` row: `food_category = 'snack_street'`, `food_name` has no trailing space
+- [ ] iOS SearchView: searching "Bhel puri" shows the "No dishes found" empty state (fork/knife icon), not a stray unrelated result

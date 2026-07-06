@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - SearchView
 
@@ -9,6 +10,13 @@ struct SearchView: View {
 
     @EnvironmentObject private var profileStore: ProfileStore
     @StateObject private var vm = SearchViewModel()
+    @StateObject private var recentSearchesStore = RecentSearchesStore()
+
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \FavoriteDish.dateAdded, order: .reverse) private var favorites: [FavoriteDish]
+
+    @State private var showFiltersSheet = false
+    @State private var draftDietaryFilters: Set<DietaryFilter> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,7 +28,10 @@ struct SearchView: View {
                     TextField("Search Indian dishes…", text: $vm.query)
                         .textFieldStyle(.plain)
                         .autocorrectionDisabled()
-                        .onSubmit { Task { await vm.search() } }
+                        .onSubmit {
+                            recentSearchesStore.add(vm.query)
+                            Task { await vm.searchNow() }
+                        }
                     if !vm.query.isEmpty {
                         Button {
                             vm.query = ""
@@ -31,9 +42,9 @@ struct SearchView: View {
                         }
                     }
                 }
-                .padding(10)
+                .padding(12)
                 .background(Color(.systemGray6))
-                .cornerRadius(10)
+                .cornerRadius(14)
 
                 Button("Cancel", action: onCancel)
                     .foregroundColor(.orange)
@@ -48,12 +59,12 @@ struct SearchView: View {
             }
             .padding()
 
-            // ── Category filter pills ───────────────────────────────────────
+            // ── Category chips + Filters pill (single scrollable row) ───────
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     CategoryPill(label: "All", isSelected: vm.selectedCategory == nil) {
                         vm.selectedCategory = nil
-                        Task { await vm.search() }
+                        Task { await vm.searchNow() }
                     }
                     ForEach(SearchViewModel.categories, id: \.self) { cat in
                         CategoryPill(
@@ -61,31 +72,18 @@ struct SearchView: View {
                             isSelected: vm.selectedCategory == cat
                         ) {
                             vm.selectedCategory = (vm.selectedCategory == cat) ? nil : cat
-                            Task { await vm.search() }
+                            Task { await vm.searchNow() }
                         }
+                    }
+                    FiltersPillButton(count: vm.dietaryFilters.count) {
+                        draftDietaryFilters = vm.dietaryFilters
+                        showFiltersSheet = true
                     }
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
-
-            // ── Dietary filter chips ────────────────────────────────────────
-            // Pre-checked from profile preferences; toggling is session-local
-            // and never writes back to the saved profile.
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(DietaryFilter.allCases) { filter in
-                        CategoryPill(
-                            label: filter.displayLabel,
-                            isSelected: vm.dietaryFilters.contains(filter)
-                        ) {
-                            Task { await vm.toggleFilter(filter) }
-                        }
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-            }
+            .overlay(fadeEdges)
 
             Divider()
 
@@ -109,49 +107,51 @@ struct SearchView: View {
                 Spacer()
 
             } else if vm.query.isEmpty {
-                // Browse mode — show category tiles
-                BrowseView(browse: vm.browseData, onSelect: onSelect)
+                EmptyQueryContent(
+                    favorites:           favorites,
+                    recentSearches:      recentSearchesStore.queries,
+                    browse:              vm.browseData,
+                    onSelectFavorite:    { fav in
+                        onSelect(SearchResult(
+                            foodCode:             fav.foodCode,
+                            foodName:             fav.dishName,
+                            energyKcalPerServing: nil,
+                            matchType:            "favorite",
+                            matchScore:           100,
+                            foodCategory:         nil
+                        ))
+                    },
+                    onUnfavorite:        { fav in modelContext.delete(fav) },
+                    onTapRecent:         { query in
+                        vm.query = query
+                        Task { await vm.searchNow() }
+                    },
+                    onDeleteRecent:      { offsets in recentSearchesStore.remove(at: offsets) },
+                    onClearAllRecent:    { recentSearchesStore.clearAll() },
+                    onSelectBrowseDish:  { result in onSelect(result) }
+                )
 
             } else {
-                List(vm.results) { result in
-                    Button {
-                        onSelect(result)
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(result.foodName)
-                                    .font(.body)
-                                    .foregroundColor(.primary)
-                                HStack(spacing: 6) {
-                                    if let kcal = result.energyKcalPerServing {
-                                        Text("\(Int(kcal)) kcal")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    if let cat = result.foodCategory {
-                                        Text("· \(cat.replacingOccurrences(of: "_", with: " "))")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    // Match badge
-                                    Text(result.matchType)
-                                        .font(.caption2)
-                                        .padding(.horizontal, 5)
-                                        .padding(.vertical, 2)
-                                        .background(matchColor(result.matchType).opacity(0.15))
-                                        .foregroundColor(matchColor(result.matchType))
-                                        .clipShape(Capsule())
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(vm.results) { result in
+                            SearchResultCard(
+                                result:     result,
+                                isFavorite: isFavorite(result.foodCode),
+                                onTap: {
+                                    recentSearchesStore.add(vm.query)
+                                    onSelect(result)
+                                },
+                                onToggleFavorite: {
+                                    toggleFavorite(foodCode: result.foodCode, dishName: result.foodName)
                                 }
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            )
                         }
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
                 }
-                .listStyle(.plain)
             }
         }
         .navigationTitle("Search Dishes")
@@ -161,20 +161,41 @@ struct SearchView: View {
             await vm.loadBrowse()
         }
         .onChange(of: vm.query) { _ in
-            Task {
-                // 400ms debounce
-                try? await Task.sleep(nanoseconds: 400_000_000)
-                await vm.search()
+            vm.handleQueryChanged()
+        }
+        .sheet(isPresented: $showFiltersSheet) {
+            DietaryFiltersSheet(draftFilters: $draftDietaryFilters) {
+                Task { await vm.applyDietaryFilters(draftDietaryFilters) }
             }
         }
     }
 
-    private func matchColor(_ type: String) -> Color {
-        switch type {
-        case "exact":  return .green
-        case "alias":  return .blue
-        case "fuzzy":  return .orange
-        default:       return .secondary
+    // MARK: - Fade edge scroll affordance
+
+    private var fadeEdges: some View {
+        HStack {
+            LinearGradient(colors: [Color(.systemBackground), .clear],
+                           startPoint: .leading, endPoint: .trailing)
+                .frame(width: 18)
+            Spacer()
+            LinearGradient(colors: [.clear, Color(.systemBackground)],
+                           startPoint: .leading, endPoint: .trailing)
+                .frame(width: 18)
+        }
+        .allowsHitTesting(false)
+    }
+
+    // MARK: - Favorites helpers
+
+    private func isFavorite(_ foodCode: String) -> Bool {
+        favorites.contains { $0.foodCode == foodCode }
+    }
+
+    private func toggleFavorite(foodCode: String, dishName: String) {
+        if let existing = favorites.first(where: { $0.foodCode == foodCode }) {
+            modelContext.delete(existing)
+        } else {
+            modelContext.insert(FavoriteDish(foodCode: foodCode, dishName: dishName))
         }
     }
 }
@@ -202,77 +223,335 @@ struct CategoryPill: View {
     }
 }
 
-// MARK: - BrowseView
+// MARK: - FiltersPillButton
 
-struct BrowseView: View {
-    let browse: BrowseResponse?
-    let onSelect: (SearchResult) -> Void
+struct FiltersPillButton: View {
+    let count: Int
+    let action: () -> Void
 
     var body: some View {
-        ScrollView {
-            if let browse {
-                LazyVStack(alignment: .leading, spacing: 24) {
-                    ForEach(browse.categories.keys.sorted(), id: \.self) { category in
-                        if let dishes = browse.categories[category], !dishes.isEmpty {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text(category.replacingOccurrences(of: "_", with: " ").capitalized)
-                                    .font(.headline)
-                                    .padding(.horizontal)
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: "slider.horizontal.3")
+                Text(count > 0 ? "Filters (\(count))" : "Filters")
+            }
+            .font(.caption)
+            .fontWeight(count > 0 ? .semibold : .regular)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(count > 0 ? Color.orange : Color(.systemGray6))
+            .foregroundColor(count > 0 ? .white : .primary)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
 
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 12) {
-                                        ForEach(dishes, id: \.foodCode) { dish in
-                                            Button {
-                                                onSelect(SearchResult(
-                                                    foodCode:             dish.foodCode,
-                                                    foodName:             dish.foodName,
-                                                    energyKcalPerServing: dish.energyKcalPerServing,
-                                                    matchType:            "browse",
-                                                    matchScore:           100,
-                                                    foodCategory:         category
-                                                ))
-                                            } label: {
-                                                VStack(alignment: .leading, spacing: 6) {
-                                                    Text(dish.foodName)
-                                                        .font(.subheadline)
-                                                        .fontWeight(.medium)
-                                                        .foregroundColor(.primary)
-                                                        .lineLimit(2)
-                                                        .multilineTextAlignment(.leading)
-                                                    if let kcal = dish.energyKcalPerServing {
-                                                        Text("\(Int(kcal)) kcal")
-                                                            .font(.caption)
-                                                            .foregroundColor(.secondary)
-                                                    }
-                                                }
-                                                .frame(width: 140, alignment: .leading)
-                                                .padding(12)
-                                                .background(Color(.systemGray6))
-                                                .cornerRadius(12)
-                                            }
-                                            .buttonStyle(.plain)
-                                        }
-                                    }
-                                    .padding(.horizontal)
+// MARK: - DietaryFiltersSheet
+
+/// Selections default to the caller's active filters but never write back to the
+/// saved Profile preference on their own — the caller decides what "Apply" means.
+struct DietaryFiltersSheet: View {
+    @Binding var draftFilters: Set<DietaryFilter>
+    let onApply: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(DietaryFilter.allCases) { filter in
+                    Toggle(filter.displayLabel, isOn: Binding(
+                        get: { draftFilters.contains(filter) },
+                        set: { isOn in
+                            if isOn { draftFilters.insert(filter) }
+                            else    { draftFilters.remove(filter) }
+                        }
+                    ))
+                    .tint(.orange)
+                }
+            }
+            .navigationTitle("Filters")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Clear All") {
+                        draftFilters.removeAll()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Apply") {
+                        onApply()
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - EmptyQueryContent
+
+/// Landing content shown when the search field is empty: Favorites, Recent
+/// Searches, then the existing category-browse tiles — so returning users land
+/// on their own history instead of a blank screen.
+struct EmptyQueryContent: View {
+    let favorites: [FavoriteDish]
+    let recentSearches: [String]
+    let browse: BrowseResponse?
+    let onSelectFavorite: (FavoriteDish) -> Void
+    let onUnfavorite: (FavoriteDish) -> Void
+    let onTapRecent: (String) -> Void
+    let onDeleteRecent: (IndexSet) -> Void
+    let onClearAllRecent: () -> Void
+    let onSelectBrowseDish: (SearchResult) -> Void
+
+    var body: some View {
+        List {
+            Section {
+                if favorites.isEmpty {
+                    EmptyStateRow(icon: "heart",
+                                  text: "Favorite a dish to see it here for quick re-logging")
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(favorites) { fav in
+                                FavoriteCard(
+                                    favorite: fav,
+                                    onSelect: { onSelectFavorite(fav) },
+                                    onToggleFavorite: { onUnfavorite(fav) }
+                                )
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .padding(.horizontal)
+                }
+            } header: {
+                Text("Favorites")
+            }
+
+            Section {
+                if recentSearches.isEmpty {
+                    EmptyStateRow(icon: "clock",
+                                  text: "Your recent searches will show up here")
+                } else {
+                    ForEach(recentSearches, id: \.self) { query in
+                        Button {
+                            onTapRecent(query)
+                        } label: {
+                            Label(query, systemImage: "clock")
+                                .foregroundColor(.primary)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                if let index = recentSearches.firstIndex(of: query) {
+                                    onDeleteRecent(IndexSet(integer: index))
                                 }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
                     }
                 }
-                .padding(.vertical)
-            } else {
-                VStack(spacing: 16) {
+            } header: {
+                HStack {
+                    Text("Recent Searches")
                     Spacer()
-                    ProgressView()
-                    Text("Loading dishes…")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
+                    if !recentSearches.isEmpty {
+                        Button("Clear All", action: onClearAllRecent)
+                            .font(.caption)
+                            .textCase(nil)
+                    }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 80)
+            }
+
+            if let browse {
+                ForEach(browse.categories.keys.sorted(), id: \.self) { category in
+                    if let dishes = browse.categories[category], !dishes.isEmpty {
+                        Section {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(dishes, id: \.foodCode) { dish in
+                                        Button {
+                                            onSelectBrowseDish(SearchResult(
+                                                foodCode:             dish.foodCode,
+                                                foodName:             dish.foodName,
+                                                energyKcalPerServing: dish.energyKcalPerServing,
+                                                matchType:            "browse",
+                                                matchScore:           100,
+                                                foodCategory:         category
+                                            ))
+                                        } label: {
+                                            VStack(alignment: .leading, spacing: 6) {
+                                                Text(dish.foodName)
+                                                    .font(.subheadline)
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.primary)
+                                                    .lineLimit(2)
+                                                    .multilineTextAlignment(.leading)
+                                                if let kcal = dish.energyKcalPerServing {
+                                                    Text("\(Int(kcal)) kcal")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            }
+                                            .frame(width: 140, alignment: .leading)
+                                            .padding(12)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(12)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                            .listRowInsets(EdgeInsets())
+                            .padding(.horizontal)
+                        } header: {
+                            Text(category.replacingOccurrences(of: "_", with: " ").capitalized)
+                        }
+                    }
+                }
+            } else {
+                Section {
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            ProgressView()
+                            Text("Loading dishes…")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 24)
+                }
             }
         }
+        .listStyle(.plain)
+    }
+}
+
+// MARK: - EmptyStateRow
+
+struct EmptyStateRow: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .foregroundColor(.secondary)
+            Text(text)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 6)
+    }
+}
+
+// MARK: - FavoriteCard
+
+struct FavoriteCard: View {
+    let favorite: FavoriteDish
+    let onSelect: () -> Void
+    let onToggleFavorite: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Spacer()
+                Button(action: onToggleFavorite) {
+                    Image(systemName: "heart.fill")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+            }
+            Text(favorite.dishName)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+        .frame(width: 140, height: 84, alignment: .topLeading)
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color(.systemGray6)))
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onSelect)
+    }
+}
+
+// MARK: - SearchResultCard
+
+struct SearchResultCard: View {
+    let result: SearchResult
+    let isFavorite: Bool
+    let onTap: () -> Void
+    let onToggleFavorite: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(result.foodName)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.leading)
+
+                    HStack(spacing: 8) {
+                        if let kcal = result.energyKcalPerServing {
+                            Text("\(Int(kcal)) kcal")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        if let cat = result.foodCategory {
+                            Text(cat.replacingOccurrences(of: "_", with: " ").capitalized)
+                                .font(.caption2)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(.systemGray5))
+                                .clipShape(Capsule())
+                        }
+                        if result.matchType == "alias" || result.matchType == "fuzzy" {
+                            Text(result.matchType.capitalized)
+                                .font(.caption2)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(matchBadgeColor(result.matchType).opacity(0.15))
+                                .foregroundColor(matchBadgeColor(result.matchType))
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+                Spacer(minLength: 8)
+                Button(action: onToggleFavorite) {
+                    Image(systemName: isFavorite ? "heart.fill" : "heart")
+                        .foregroundColor(isFavorite ? .red : .secondary)
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(16)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color(.systemGray6).opacity(0.6)))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private func matchBadgeColor(_ type: String) -> Color {
+    switch type {
+    case "exact":  return .green
+    case "alias":  return .blue
+    case "fuzzy":  return .orange
+    default:       return .secondary
     }
 }
 
@@ -290,25 +569,66 @@ class SearchViewModel: ObservableObject {
     private let api = APIService()
     private var filtersSeeded = false
 
+    /// In-flight search request — cancelled whenever a new search starts, so a
+    /// slow earlier response can never overwrite a faster later one.
+    private var searchTask: Task<SearchResponse?, Never>?
+    /// Debounce timer for search-as-you-type.
+    private var debounceTask: Task<Void, Never>?
+
     static let categories: [String] = [
         "rice", "bread", "dal_legume", "meat_fish",
         "vegetable", "paneer_dairy", "snack_street",
         "sweet_dessert", "beverage",
     ]
 
-    func search() async {
+    /// Called on every keystroke. Debounces ~300ms before firing the request.
+    func handleQueryChanged() {
+        debounceTask?.cancel()
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else {
-            results = []
+            searchTask?.cancel()
+            results   = []
+            isLoading = false
             return
         }
+        debounceTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            await self?.search()
+        }
+    }
+
+    /// Bypasses the debounce for explicit user actions (submit, category tap,
+    /// recent-search tap, filter apply).
+    func searchNow() async {
+        debounceTask?.cancel()
+        await search()
+    }
+
+    func search() async {
+        searchTask?.cancel()
+
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else {
+            results   = []
+            isLoading = false
+            return
+        }
+
         isLoading = true
-        let response = try? await api.searchDishes(
-            query: trimmed,
-            limit: 8,
-            category: selectedCategory,
-            dietaryFilters: dietaryFilters
-        )
+        let requestCategory = selectedCategory
+        let requestFilters  = dietaryFilters
+        let task = Task<SearchResponse?, Never> { [api] in
+            (try? await api.searchDishes(
+                query: trimmed, limit: 8,
+                category: requestCategory, dietaryFilters: requestFilters
+            )) ?? nil
+        }
+        searchTask = task
+
+        let response = await task.value
+        guard !task.isCancelled else { return }
+
         results   = response?.results ?? []
         isLoading = false
     }
@@ -326,13 +646,11 @@ class SearchViewModel: ObservableObject {
         filtersSeeded  = true
     }
 
-    func toggleFilter(_ filter: DietaryFilter) async {
-        if dietaryFilters.contains(filter) {
-            dietaryFilters.remove(filter)
-        } else {
-            dietaryFilters.insert(filter)
-        }
+    /// Applies a batch of filter changes from the Filters sheet. Session-local,
+    /// same as the old per-chip toggle — never writes back to the saved profile.
+    func applyDietaryFilters(_ filters: Set<DietaryFilter>) async {
+        dietaryFilters = filters
         await loadBrowse(force: true)
-        await search()
+        await searchNow()
     }
 }

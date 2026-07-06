@@ -169,7 +169,7 @@ def dish_search(
             "food_category":          dish_dict.get("food_category"),
         }
 
-    result  = aliases.resolve_dish_name(q)
+    result  = aliases.resolve_dish_name(q, limit=limit)
     results = []
 
     if result["match_type"] in ("exact", "alias"):
@@ -188,7 +188,7 @@ def dish_search(
 
     # If alias/exact was filtered out by category and nothing came back, try fuzzy
     if not results and result["match_type"] in ("exact", "alias"):
-        fallback = aliases.resolve_dish_name(q, force_fuzzy=True)
+        fallback = aliases.resolve_dish_name(q, force_fuzzy=True, limit=limit)
         for candidate in fallback.get("candidates", [])[:limit]:
             row = _to_result(candidate, "fuzzy", int(candidate.get("fuzzy_score", 0)))
             if row:
@@ -197,11 +197,15 @@ def dish_search(
     # Determine confidence level
     top_score     = results[0]["match_score"] if results else 0
     low_confidence = top_score < 80 or len(results) == 0
-    suggestion    = (
-        "No exact match found. Showing closest results. "
-        "You can still select one or try a different search term."
-        if low_confidence else None
-    )
+    if not results:
+        suggestion = "No close match found. Try a different search term."
+    elif low_confidence:
+        suggestion = (
+            "No exact match found. Showing closest results. "
+            "You can still select one or try a different search term."
+        )
+    else:
+        suggestion = None
 
     response = {"query": q, "results": results, "total": len(results)}
     if low_confidence:
