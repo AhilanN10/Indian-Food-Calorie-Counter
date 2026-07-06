@@ -15,6 +15,15 @@ struct QuestionView: View {
     @State private var weightInput           = ""
     @State private var showLargePortionAlert = false
 
+    // Katori / piece-count entry (Portion Accuracy phase)
+    @State private var katoriEntryActive     = false
+    @State private var katoriValue: Double   = 1.0
+    @State private var pieceEntryActive      = false
+    @State private var pieceValue: Double    = 1
+    // Optional oil/ghee add-on stepper (its own question, not an alternate
+    // entry mode - see QuestionEngine.oilGheeQuestion)
+    @State private var oilGheeValue: Double  = 0
+
     private let ozToGrams = 28.3495
 
     var currentQuestion: QAQuestion { questions[currentIndex] }
@@ -41,6 +50,10 @@ struct QuestionView: View {
     private var manualWeightAvailable: Bool {
         currentQuestion.allowsManualWeight && (servingSizeG ?? 0) > 0
     }
+
+    private var katoriAvailable: Bool { currentQuestion.allowsKatori }
+    private var pieceCountAvailable: Bool { currentQuestion.allowsPieceCount }
+    private var isOilGheeQuestion: Bool { currentQuestion.id == "oil_ghee_extra" }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -73,8 +86,20 @@ struct QuestionView: View {
                         .padding(.horizontal)
                         .padding(.top, 24)
 
-                    if manualEntryActive {
+                    if isOilGheeQuestion {
+                        oilGheeEntry
+                            .padding(.horizontal)
+                            .padding(.bottom, 32)
+                    } else if manualEntryActive {
                         manualWeightEntry
+                            .padding(.horizontal)
+                            .padding(.bottom, 32)
+                    } else if katoriEntryActive {
+                        katoriEntry
+                            .padding(.horizontal)
+                            .padding(.bottom, 32)
+                    } else if pieceEntryActive {
+                        pieceCountEntry
                             .padding(.horizontal)
                             .padding(.bottom, 32)
                     } else {
@@ -97,6 +122,28 @@ struct QuestionView: View {
                                     withAnimation { activateManualEntry() }
                                 } label: {
                                     Label("Enter exact weight instead?", systemImage: "scalemass")
+                                        .font(.callout)
+                                        .foregroundColor(.orange)
+                                }
+                                .padding(.top, 8)
+                            }
+
+                            if katoriAvailable {
+                                Button {
+                                    withAnimation { activateKatoriEntry() }
+                                } label: {
+                                    Label("Enter katori count instead?", systemImage: "cup.and.saucer")
+                                        .font(.callout)
+                                        .foregroundColor(.orange)
+                                }
+                                .padding(.top, manualWeightAvailable ? 2 : 8)
+                            }
+
+                            if pieceCountAvailable {
+                                Button {
+                                    withAnimation { activatePieceEntry() }
+                                } label: {
+                                    Label("Enter piece count instead?", systemImage: "number")
                                         .font(.callout)
                                         .foregroundColor(.orange)
                                 }
@@ -138,8 +185,8 @@ struct QuestionView: View {
         }
         .navigationTitle("About Your Food")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { syncManualState() }
-        .onChange(of: currentIndex) { _, _ in syncManualState() }
+        .onAppear { syncEntryState() }
+        .onChange(of: currentIndex) { _, _ in syncEntryState() }
         .alert("Large portion", isPresented: $showLargePortionAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Confirm") { saveManualWeight() }
@@ -258,6 +305,180 @@ struct QuestionView: View {
         } else {
             manualEntryActive = false
             weightInput = ""
+        }
+    }
+
+    /// Restore katori/piece/oil-ghee entry state when landing on a question
+    /// (e.g. via Back), mirroring syncManualState above.
+    private func syncEntryState() {
+        syncManualState()
+
+        let katoriPrefix = QuestionEngine.katoriPrefix
+        if let resp = responses[currentQuestion.id],
+           resp.hasPrefix(katoriPrefix),
+           let count = Double(resp.dropFirst(katoriPrefix.count)) {
+            katoriEntryActive = true
+            katoriValue = count
+        } else {
+            katoriEntryActive = false
+            katoriValue = 1.0
+        }
+
+        let piecePrefix = QuestionEngine.piecePrefix
+        if let resp = responses[currentQuestion.id],
+           resp.hasPrefix(piecePrefix),
+           let count = Double(resp.dropFirst(piecePrefix.count)) {
+            pieceEntryActive = true
+            pieceValue = count
+        } else {
+            pieceEntryActive = false
+            pieceValue = 1
+        }
+
+        if isOilGheeQuestion, let resp = responses[currentQuestion.id], let tsp = Double(resp) {
+            oilGheeValue = tsp
+        } else if isOilGheeQuestion {
+            oilGheeValue = 0
+        }
+    }
+
+    // MARK: - Katori entry
+
+    private var katoriEntry: some View {
+        VStack(spacing: 14) {
+            Stepper(value: $katoriValue, in: 0.5...5.0, step: 0.5) {
+                Text("\(katoriValue.formatted(.number.precision(.fractionLength(0...1)))) katori\(katoriValue == 1.0 ? "" : "s")")
+                    .font(.title3)
+                    .fontWeight(.medium)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
+
+            Text("1 katori \u{2248} a small bowl")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                responses[currentQuestion.id] = "\(QuestionEngine.katoriPrefix)\(katoriValue)"
+                advance()
+            } label: {
+                Text("Use This Amount")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.orange)
+                    .cornerRadius(12)
+            }
+
+            Button {
+                withAnimation { deactivateKatoriEntry() }
+            } label: {
+                Text("Choose a portion size instead")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private func activateKatoriEntry() {
+        responses.removeValue(forKey: currentQuestion.id)
+        katoriValue = 1.0
+        katoriEntryActive = true
+    }
+
+    private func deactivateKatoriEntry() {
+        if let resp = responses[currentQuestion.id], resp.hasPrefix(QuestionEngine.katoriPrefix) {
+            responses.removeValue(forKey: currentQuestion.id)
+        }
+        katoriEntryActive = false
+    }
+
+    // MARK: - Piece-count entry
+
+    private var pieceCountEntry: some View {
+        VStack(spacing: 14) {
+            Stepper(value: $pieceValue, in: 1...10, step: 1) {
+                Text("\(Int(pieceValue)) piece\(Int(pieceValue) == 1 ? "" : "s")")
+                    .font(.title3)
+                    .fontWeight(.medium)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
+
+            Button {
+                responses[currentQuestion.id] = "\(QuestionEngine.piecePrefix)\(pieceValue)"
+                advance()
+            } label: {
+                Text("Use This Count")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.orange)
+                    .cornerRadius(12)
+            }
+
+            Button {
+                withAnimation { deactivatePieceEntry() }
+            } label: {
+                Text("Choose a portion size instead")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private func activatePieceEntry() {
+        responses.removeValue(forKey: currentQuestion.id)
+        pieceValue = 1
+        pieceEntryActive = true
+    }
+
+    private func deactivatePieceEntry() {
+        if let resp = responses[currentQuestion.id], resp.hasPrefix(QuestionEngine.piecePrefix) {
+            responses.removeValue(forKey: currentQuestion.id)
+        }
+        pieceEntryActive = false
+    }
+
+    // MARK: - Oil / ghee add-on entry
+
+    /// Optional, skippable tsp stepper. Skipping (the existing required:false
+    /// Skip button) leaves this question unanswered - oilGheeTsp stays nil,
+    /// which the backend treats as 0, per spec.
+    private var oilGheeEntry: some View {
+        VStack(spacing: 14) {
+            Stepper(value: $oilGheeValue, in: 0...6, step: 0.5) {
+                Text("\(oilGheeValue.formatted(.number.precision(.fractionLength(0...1)))) tsp")
+                    .font(.title3)
+                    .fontWeight(.medium)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemGray6)))
+
+            Text("\u{2248} 40 kcal per tsp of oil or ghee")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                responses[currentQuestion.id] = "\(oilGheeValue)"
+                advance()
+            } label: {
+                Text("Add")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(oilGheeValue > 0 ? Color.orange : Color(.systemGray4))
+                    .cornerRadius(12)
+            }
+            .disabled(oilGheeValue <= 0)
         }
     }
 

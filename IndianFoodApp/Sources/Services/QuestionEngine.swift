@@ -4,6 +4,10 @@ class QuestionEngine: ObservableObject {
 
     /// Responses dict value prefix marking an exact-weight answer, e.g. "manual:150.0"
     static let manualWeightPrefix = "manual:"
+    /// Responses dict value prefix marking a katori-count answer, e.g. "katori:1.5"
+    static let katoriPrefix = "katori:"
+    /// Responses dict value prefix marking a piece-count answer, e.g. "piece:2"
+    static let piecePrefix = "piece:"
 
     // MARK: - Main entry point
     func generateQuestions(for dish: DishMatch?,
@@ -17,7 +21,7 @@ class QuestionEngine: ObservableObject {
         case "bread":
             questions += breadQuestions(dish: dish)
         case "rice":
-            questions += riceQuestions()
+            questions += riceQuestions(dish: dish)
         case "dal_legume":
             questions += dalLegumeQuestions(dish: dish)
         case "meat_fish":
@@ -27,9 +31,9 @@ class QuestionEngine: ObservableObject {
         case "paneer_dairy":
             questions += paneerDairyQuestions(dish: dish)
         case "snack_street":
-            questions += snackStreetQuestions()
+            questions += snackStreetQuestions(dish: dish)
         case "sweet_dessert":
-            questions += sweetDessertQuestions()
+            questions += sweetDessertQuestions(dish: dish)
         case "condiment_side":
             questions += condimentQuestions()
         default:
@@ -94,7 +98,8 @@ class QuestionEngine: ObservableObject {
                     QAOption(id: "four",  value: "extra_large", label: "4+ pieces",  hint: ""),
                 ],
                 required: true,
-                affects: "portion_scale"
+                affects: "portion_scale",
+                allowsPieceCount: dish?.pieceCountEligible ?? false
             ),
             QAQuestion(
                 id: "bread_style",
@@ -131,7 +136,7 @@ class QuestionEngine: ObservableObject {
     }
 
     // MARK: - Rice
-    private func riceQuestions() -> [QAQuestion] {
+    private func riceQuestions(dish: DishMatch?) -> [QAQuestion] {
         [
             QAQuestion(
                 id: "rice_amount",
@@ -145,7 +150,8 @@ class QuestionEngine: ObservableObject {
                 ],
                 required: true,
                 affects: "rice_scale",
-                allowsManualWeight: true
+                allowsManualWeight: true,
+                allowsKatori: dish?.katoriEligible ?? false
             ),
             QAQuestion(
                 id: "rice_type",
@@ -178,7 +184,8 @@ class QuestionEngine: ObservableObject {
                 options: portionSizeOptions(),
                 required: true,
                 affects: "portion_scale",
-                allowsManualWeight: true
+                allowsManualWeight: true,
+                allowsKatori: dish?.katoriEligible ?? false
             ),
             QAQuestion(
                 id: "cooking_context",
@@ -206,6 +213,7 @@ class QuestionEngine: ObservableObject {
                 required: false,
                 affects: "flat_additions"
             ),
+            oilGheeQuestion(),
         ]
     }
 
@@ -274,6 +282,7 @@ class QuestionEngine: ObservableObject {
                 affects: "flat_additions"
             ))
         }
+        q.append(oilGheeQuestion())
         return q
     }
 
@@ -286,7 +295,8 @@ class QuestionEngine: ObservableObject {
                 options: portionSizeOptions(),
                 required: true,
                 affects: "portion_scale",
-                allowsManualWeight: true
+                allowsManualWeight: true,
+                allowsKatori: dish?.katoriEligible ?? false
             ),
             QAQuestion(
                 id: "cooking_context",
@@ -314,6 +324,7 @@ class QuestionEngine: ObservableObject {
                 required: false,
                 affects: "gravy_fat"
             ),
+            oilGheeQuestion(),
         ]
     }
 
@@ -326,7 +337,8 @@ class QuestionEngine: ObservableObject {
                 options: portionSizeOptions(),
                 required: true,
                 affects: "portion_scale",
-                allowsManualWeight: true
+                allowsManualWeight: true,
+                allowsKatori: dish?.katoriEligible ?? false
             ),
             QAQuestion(
                 id: "cooking_context",
@@ -355,11 +367,12 @@ class QuestionEngine: ObservableObject {
                 affects: "flat_additions"
             ))
         }
+        q.append(oilGheeQuestion())
         return q
     }
 
     // MARK: - Snack / Street food
-    private func snackStreetQuestions() -> [QAQuestion] {
+    private func snackStreetQuestions(dish: DishMatch?) -> [QAQuestion] {
         [
             QAQuestion(
                 id: "portion_size",
@@ -372,7 +385,8 @@ class QuestionEngine: ObservableObject {
                 ],
                 required: true,
                 affects: "portion_scale",
-                allowsManualWeight: true
+                allowsManualWeight: true,
+                allowsPieceCount: dish?.pieceCountEligible ?? false
             ),
             QAQuestion(
                 id: "cooking_context",
@@ -402,7 +416,7 @@ class QuestionEngine: ObservableObject {
     }
 
     // MARK: - Sweet / Dessert
-    private func sweetDessertQuestions() -> [QAQuestion] {
+    private func sweetDessertQuestions(dish: DishMatch?) -> [QAQuestion] {
         [
             QAQuestion(
                 id: "portion_size",
@@ -415,7 +429,8 @@ class QuestionEngine: ObservableObject {
                 ],
                 required: true,
                 affects: "portion_scale",
-                allowsManualWeight: true
+                allowsManualWeight: true,
+                allowsPieceCount: dish?.pieceCountEligible ?? false
             ),
             QAQuestion(
                 id: "sweet_context",
@@ -520,6 +535,20 @@ class QuestionEngine: ObservableObject {
         ]
     }
 
+    /// Optional, skippable oil/ghee add-on (dal_legume, vegetable, meat_fish,
+    /// paneer_dairy only). No button options - QuestionView renders a tsp
+    /// stepper for this id instead. Skipping (the existing required:false
+    /// path) leaves oilGheeTsp nil, which the backend treats as 0.
+    private func oilGheeQuestion() -> QAQuestion {
+        QAQuestion(
+            id: "oil_ghee_extra",
+            question: "Add extra oil or ghee?",
+            options: [],
+            required: false,
+            affects: "oil_ghee_additive"
+        )
+    }
+
     private func gravyOptions() -> [QAOption] {
         [
             QAOption(id: "dry",        value: "dry",        label: "Dry",        hint: "No sauce"),
@@ -549,8 +578,24 @@ class QuestionEngine: ObservableObject {
                 answers.manualWeightG = grams
                 continue
             }
+            // Katori-count entry ("katori:<count>") replaces the bucket answer
+            if question.allowsKatori,
+               response.hasPrefix(Self.katoriPrefix),
+               let count = Double(response.dropFirst(Self.katoriPrefix.count)) {
+                answers.katoriCount = count
+                continue
+            }
+            // Piece-count entry ("piece:<count>") replaces the bucket answer
+            if question.allowsPieceCount,
+               response.hasPrefix(Self.piecePrefix),
+               let count = Double(response.dropFirst(Self.piecePrefix.count)) {
+                answers.pieceCount = count
+                continue
+            }
 
             switch question.id {
+            case "oil_ghee_extra":
+                answers.oilGheeTsp = Double(response)
             case "portion_size", "beverage_size", "bread_pieces":
                 answers.portionSize = response
             case "cooking_context", "sweet_context":

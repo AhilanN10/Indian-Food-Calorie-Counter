@@ -24,6 +24,13 @@ struct DishMatch: Codable {
     let dairyFatAlreadyCounted: Int
     let foodCategory: String?
     let servingSizeG: Double?
+    // Portion Accuracy phase: server-computed eligibility (see
+    // portion_eligibility.py) for the katori / piece-count / oil-ghee
+    // add-on portion methods. Absent on payloads that don't include them
+    // (e.g. none currently, but decoded defensively) defaults to false.
+    let katoriEligible: Bool?
+    let pieceCountEligible: Bool?
+    let oilGheeEligible: Bool?
     // Diet flags: 1 = compliant, 0 = violates, nil = unknown/untagged
     let isVegetarian: Int?
     let isVegan: Int?
@@ -49,6 +56,9 @@ struct DishMatch: Codable {
         case dairyFatAlreadyCounted    = "dairy_fat_already_counted"
         case foodCategory              = "food_category"
         case servingSizeG              = "serving_size_g"
+        case katoriEligible            = "katori_eligible"
+        case pieceCountEligible        = "piece_count_eligible"
+        case oilGheeEligible           = "oil_ghee_eligible"
         case isVegetarian              = "is_vegetarian"
         case isVegan                   = "is_vegan"
         case isJain                    = "is_jain"
@@ -118,6 +128,8 @@ struct QAQuestion: Identifiable {
     let required: Bool
     let affects: String
     var allowsManualWeight: Bool = false
+    var allowsKatori: Bool = false
+    var allowsPieceCount: Bool = false
 }
 
 struct QAOption: Identifiable {
@@ -137,6 +149,9 @@ struct QAAnswers: Codable {
     var flatAdditions: [String] = []
     var questionsSkipped: Int = 0
     var manualWeightG: Double? = nil
+    var katoriCount: Double? = nil
+    var pieceCount: Double? = nil
+    var oilGheeTsp: Double? = nil
 
     enum CodingKeys: String, CodingKey {
         case portionSize       = "portion_size"
@@ -148,6 +163,9 @@ struct QAAnswers: Codable {
         case flatAdditions     = "flat_additions"
         case questionsSkipped  = "questions_skipped"
         case manualWeightG     = "manual_weight_g"
+        case katoriCount       = "katori_count"
+        case pieceCount        = "piece_count"
+        case oilGheeTsp        = "oil_ghee_tsp"
     }
 }
 

@@ -27,6 +27,7 @@ import db
 import aliases
 import calculator
 import usda
+import portion_eligibility as pe
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -59,6 +60,9 @@ class QAAnswers(BaseModel):
     flat_additions:    list[str]  = []
     questions_skipped: int        = 0
     manual_weight_g:   float | None = None   # exact grams – overrides portion buckets
+    katori_count:      float | None = None   # e.g. 0.5, 1, 1.5, 2 – dal/rice/vegetable/paneer_dairy
+    piece_count:       float | None = None   # e.g. 1, 2, 3 – bread/snack_street/sweet_dessert
+    oil_ghee_tsp:      float | None = 0       # optional additive add-on, default 0 (skip)
 
 
 class CalculateRequest(BaseModel):
@@ -345,6 +349,10 @@ def dish_detail(food_code: str):
     finally:
         conn.close()
 
+    dish_dict["katori_eligible"]      = pe.katori_eligible(dish_dict)
+    dish_dict["piece_count_eligible"] = pe.piece_count_eligible(dish_dict)
+    dish_dict["oil_ghee_eligible"]    = pe.oil_ghee_eligible(dish_dict)
+
     return dish_dict
 
 
@@ -361,6 +369,27 @@ def dish_calculate(body: CalculateRequest):
         raise HTTPException(
             status_code=400,
             detail="Manual weight must be at least 5 grams.",
+        )
+
+    kc = body.qa_answers.katori_count
+    if kc is not None and kc <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Katori count must be greater than 0.",
+        )
+
+    pc = body.qa_answers.piece_count
+    if pc is not None and pc <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Piece count must be greater than 0.",
+        )
+
+    og = body.qa_answers.oil_ghee_tsp
+    if og is not None and og < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Oil/ghee tsp cannot be negative.",
         )
 
     conn = db.get_db()

@@ -9,6 +9,8 @@ Main entry point: calculate_macros(dish: dict, qa_answers: dict) -> dict
 import os
 os.chdir('/Users/ahilannayani/Personal Python Projects/Indian Food Calorie Counter')
 
+import portion_eligibility as pe
+
 # ---------------------------------------------------------------------------
 # Scale tables
 # ---------------------------------------------------------------------------
@@ -157,8 +159,13 @@ def calculate_macros(dish: dict, qa_answers: dict) -> dict:
     serving_size_g     = _safe(dish.get("serving_size_g"))
     manual_weight_used = False
 
+    katori_count = qa_answers.get("katori_count")
+    piece_count  = qa_answers.get("piece_count")
+    katori_used  = False
+    piece_count_used = False
+
     if manual_weight_g and serving_size_g > 0:
-        # Exact weight takes precedence over every bucket lookup
+        # Exact weight takes precedence over every other portion method
         scale = float(manual_weight_g) / serving_size_g
         manual_weight_used = True
         adjustments.append(
@@ -168,6 +175,25 @@ def calculate_macros(dish: dict, qa_answers: dict) -> dict:
         # Dish has no usable serving weight – fall back to bucket
         adjustments.append("manual_weight_ignored_no_serving_size_g")
         scale = _bucket_scale(dish, qa_answers, adjustments, is_rice, is_meat)
+    elif katori_count:
+        derived_g = pe.derive_serving_grams(dish)
+        if derived_g:
+            grams_per_katori = pe.katori_grams_per_unit(dish, qa_answers)
+            total_g = float(katori_count) * grams_per_katori
+            scale   = total_g / derived_g
+            katori_used = True
+            adjustments.append(
+                f"katori_{katori_count}_x_{grams_per_katori}g_of_{round(derived_g, 1)}g_scale_{round(scale, 3)}"
+            )
+        else:
+            adjustments.append("katori_ignored_no_derivable_serving_grams")
+            scale = _bucket_scale(dish, qa_answers, adjustments, is_rice, is_meat)
+    elif piece_count:
+        # Per-serving nutrition data is the per-piece basis for eligible
+        # bread/snack_street/sweet_dessert dishes (see portion_eligibility.py)
+        scale = float(piece_count)
+        piece_count_used = True
+        adjustments.append(f"piece_count_{piece_count}_scale_{round(scale, 3)}")
     else:
         scale = _bucket_scale(dish, qa_answers, adjustments, is_rice, is_meat)
 
@@ -234,6 +260,18 @@ def calculate_macros(dish: dict, qa_answers: dict) -> dict:
             f"flat_{addition_key}_+{add['kcal']}kcal"
         )
 
+    # -----------------------------------------------------------------------
+    # Step 3b – Optional oil/ghee add-on (additive, not a multiplier; see
+    # portion_eligibility.OIL_GHEE_CATEGORIES for which categories offer this)
+    # -----------------------------------------------------------------------
+    oil_ghee_tsp = _safe(qa_answers.get("oil_ghee_tsp"))
+    if oil_ghee_tsp > 0:
+        oil_ghee_fat_g = oil_ghee_tsp * (pe.KCAL_PER_TSP_OIL_GHEE / 9)
+        fat_g += oil_ghee_fat_g
+        adjustments.append(
+            f"oil_ghee_{oil_ghee_tsp}tsp_+{round(oil_ghee_tsp * pe.KCAL_PER_TSP_OIL_GHEE)}kcal"
+        )
+
     # Clamp negatives (fat can theoretically go below 0 with steamed adjustments)
     fat_g     = max(0.0, fat_g)
     protein_g = max(0.0, protein_g)
@@ -266,6 +304,8 @@ def calculate_macros(dish: dict, qa_answers: dict) -> dict:
         "confidence_band_pct": band_pct,
         "questions_skipped":   skipped,
         "manual_weight_used":  manual_weight_used,
+        "katori_used":         katori_used,
+        "piece_count_used":    piece_count_used,
         "dairy_flag_applied":  dairy_flag_applied,
         "adjustments_applied": adjustments,
     }

@@ -7,7 +7,7 @@ Living document. Check items off as they're designed, implemented, and verified 
 ## Completed & Verified
 
 - [x] Backend (FastAPI, multiplier engine, all endpoints)
-- [x] SQLite DB (950 dishes), 3-tier name resolution (exact/alias/fuzzy)
+- [x] SQLite DB (950 available dishes, 1,014 total rows including 64 recipe-level entries), 3-tier name resolution (exact/alias/fuzzy)
 - [x] EfficientNet-B0 classifier, Core ML export
 - [x] SwiftUI app core (camera, Q&A flow, results, SwiftData meal logging)
 - [x] Apple Health integration (Phase 6a) — verified on simulator, real-device writes still pending device-testing session
@@ -18,6 +18,8 @@ Living document. Check items off as they're designed, implemented, and verified 
 - [x] Dietary filters — Vegetarian, Vegan, Jain, No Onion/Garlic, Gluten-Free, Dairy-Free
 - [x] Search quality fix — whitespace, fuzzy cutoff, limit bug
 - [x] Search Page Rework — recent searches, favorites, filter consolidation, debounce/cancellation, visual redesign
+- [x] Fasting Mode (Navratri + Ekadashi) — commit `9bd20e9`. DB tagging (`navratri_permitted`/`ekadashi_permitted`), backend `fastingMode` param on `/dish/search` and `/dish/browse` (AND-logic with dietary filters), separate "Fasting Mode" entry point in Profile (not folded into Filters sheet), read-only pill in Search, non-blocking conflict banner, NULL-flag "info unavailable" banner. Verified live in simulator: persistence across relaunch, AND-combination, banner behavior, all three picker states. Backend and Xcode-build verified directly, not just by CLI/self-report. Not fully closed, see below.
+- [x] Portion Accuracy — katori portions (dal_legume/rice/vegetable/gravy-paneer), piece-count portions (bread/snack_street/sweet_dessert), optional oil/ghee add-on (dal_legume/vegetable/meat_fish/paneer_dairy). New `portion_eligibility.py` module computes per-dish eligibility server-side (no DB schema change); katori/piece-count math falls back to a derived serving-weight when the raw `serving_size_g` column is NULL (it is, for ~85-100% of dishes in these categories) — see testchecklist.md "Portion Accuracy" for the full rationale. All three portion methods (bucket/manual-weight/katori-or-piece) coexist as user choices, same pattern as manual weight entry. Verified live in Simulator: katori stepper, piece-count stepper, oil/ghee stepper, and the eligibility-gated exclusions (Poori has no piece-count link, Paneer cutlet has no katori link but still gets the oil/ghee question). Backend verified via `test_portion_accuracy_regression.py` (all checks passing) plus live `curl`. Not fully closed, see below.
 
 ## Already Scoped in Roadmap (context, not yet built)
 
@@ -29,22 +31,34 @@ Living document. Check items off as they're designed, implemented, and verified 
 
 - [ ] **"Fuzzy" tag visibility conflict.** Original brainstorm said "make fuzzy tag go away." The Search Page Rework just shipped a fuzzy/alias match badge on result cards as part of the visual redesign. These directly contradict. Resolve intent: is the goal to hide the fact that a match isn't exact, or just to stop showing internal-sounding terminology like "Fuzzy" to end users (e.g. relabel as "Similar match" instead of removing the signal)? Decide before touching search result UI again.
 
+## Fasting Mode — Still Open, Not Silently Resolved
+
+- [ ] **37-dish ambiguous review list awaiting manual sign-off** (in testchecklist.md). These are dishes where keyword tagging found no clear permitted or restricted signal for Navratri/Ekadashi (mostly spice blends, pickles/chutneys with no fruit/dairy/grain/legume signal, and vegetable-only dishes using produce not called out either way in the original spec). Currently left NULL, correctly excluded from fasting-filtered results until reviewed. This is a religious-observance judgment call, not an engineering one — ideally reviewed against actual regional/family tradition, not resolved from general knowledge.
+- [ ] **Ekadashi non-veg/alcohol restriction** was extended by Claude Code beyond what was explicitly specified (spec only named grains/lentils/onion/garlic). Errs toward more restrictive, low risk, but worth a quick gut check against your own expectations.
+- [ ] Real-device testing for Fasting Mode UI — simulator only so far, batch with the other pending device tests below.
+
+## Portion Accuracy — Still Open, Not Silently Resolved
+
+- [ ] **165 dishes excluded/flagged for manual review** — 116 across the 4 katori categories (dal_legume 22, rice 9, vegetable 25, paneer_dairy 60) + 49 across the 3 piece-count categories (bread 12, snack_street 10, sweet_dessert 27). Exact per-category breakdown with every dish enumerated is in testchecklist.md "Portion Accuracy" (re-verified 2026-07-06 by direct SQL query, not recalled from memory — an earlier draft had arithmetic errors here). Most are category-fit judgment calls (e.g. is a raita or kheer "close enough" to a paneer curry to get katori too?) plus a handful of implied-serving-weight red flags (gulab jamun/halwa entries whose DB serving looks like it bundles multiple pieces). Left excluded (falls back to bucket-scale) rather than guessed either way.
+- [ ] **Manual-weight-entry is currently unavailable on ~90%+ of dishes in these same categories** (raw `serving_size_g` column is NULL for 50/56 dal_legume, 39/42 rice, 52/60 vegetable, 66/69 paneer_dairy, and 100% of bread/snack_street) because it stays gated on the raw column, while katori/piece-count now use a derived fallback (`energy_kcal_per_serving / energy_kcal_per_100g * 100`) computed from data that's already present for effectively every dish. This was a deliberate choice to avoid changing manual weight's previously-verified behavior without a separate discussion — not an oversight, but genuinely unresolved. Decide: extend manual weight to use the same derived fallback (makes it actually usable), or leave it as the more conservative/raw-data-only option.
+- [ ] **Rice katori baseline (165g) and vegetable dry/curry split (150g/200g)** are single approximate values, not verified against real katori sizes — same "flag before re-deriving" treatment as the existing fuzzy-match cutoff in aliases.py.
+- [ ] Real-device testing for the new katori/piece-count/oil-ghee UI — simulator only so far, batch with the other pending device tests below.
+
 ---
 
 ## Next Up
 
-- [ ] **Fasting-day mode** — permitted-food filtering for Navratri, Ramzan, Ekadashi, etc. (e.g. no grains during Navratri, only kuttu/singhara flours). Flagged as the strongest "nobody else has built this" differentiator for observant Indian users. Ramzan out of scope (time-window, not food-composition based). **Navratri + Ekadashi: data tagging + backend filtering + iOS UI implemented and verified in Simulator 2026-07-06 — see testchecklist.md "Fasting Mode" section.** Not checked off yet: 27-dish ambiguous-tagging review needs Ahilan's manual sign-off, NULL-flag banner text untested, real-device testing pending.
+- [ ] Nothing queued yet. Pick the next priority from the backlog below when ready.
 
 ---
 
 ## Backlog — Indian-Eating-Pattern Specific
 
 - [ ] Thali/mixed-plate multi-food recognition — architecturally significant, needs object detection/segmentation before classification, not just retraining. Scope carefully, this changes the vision pipeline.
-- [ ] Count-based portion units — katori, piece counts (ladoo/piece counts for sweets), rather than only grams/cups
 - [ ] Reheated/leftover food calorie adjustment — oil re-absorption changes calorie density slightly, minor but authentic
 - [ ] Family/multi-serving logging — log one dish cooked for N people, split per person
-- [ ] Cooking oil/ghee as a separate loggable quantity — Indian home cooking has wide oil/ghee variance per household that a fixed per-dish average can't capture; a simple "add extra oil/ghee (tsp)" adjustment on top of base dish estimate, feeds directly into existing multiplier engine, no ML changes
 - [ ] Regional cuisine profile at onboarding — user tags home region (Punjabi, Tamil, Bengali, Gujarati, etc.) once, used to bias fuzzy match ranking and default/suggested dishes toward what they're actually likely to log. No new data needed, just reweighting existing dishes.
+- [ ] Ramzan fasting mode — deferred from the Navratri/Ekadashi phase since it's structurally different: a time-window restriction (no eating dawn to dusk, specific pre-dawn/iftar foods) rather than a food-composition restriction. Needs its own data model and UI, not an extension of the existing Fasting Mode picker.
 
 ## Backlog — Health Differentiators
 
@@ -103,4 +117,4 @@ Living document. Check items off as they're designed, implemented, and verified 
 
 ---
 
-*Last updated after Search Page Rework completion. Add new items under the relevant category; don't reorganize categories without discussing here first.*
+*Last updated after Portion Accuracy (katori/piece-count/oil-ghee) completion, 2026-07-06. Add new items under the relevant category; don't reorganize categories without discussing here first.*
