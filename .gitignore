@@ -41,3 +41,6 @@ Food Data/
 ifct2017/
 Indian-Nutrient-Databank-INDB-/
 *.zip
+
+# Local-only Claude Code project instructions (not checked in)
+CLAUDE.md
